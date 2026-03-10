@@ -30,10 +30,11 @@ export function Navbar() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-8">
-          <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer">Features</a>
-          <button onClick={() => setContactOpen(true)} className="font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-transparent border-none p-0">Contact Us</button>
-          <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer">How it Works</a>
+          <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer">How It Works</a>
+          <a href="#output-preview" onClick={(e) => scrollToSection(e, 'output-preview')} className="font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer">Output Preview</a>
           <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer">Pricing</a>
+          <a href="#faq" onClick={(e) => scrollToSection(e, 'faq')} className="font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer">FAQ</a>
+          <button onClick={() => setContactOpen(true)} className="font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-transparent border-none p-0">Contact Us</button>
           <div className="flex items-center gap-4 ml-4">
             <Link href="/login">
               <span className="inline-block">
@@ -42,8 +43,8 @@ export function Navbar() {
             </Link>
             <Link href="/signup">
               <span className="inline-block">
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-md">
-                  Get Started
+                <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-md">
+                  Start My Claim
                 </Button>
               </span>
             </Link>
@@ -60,10 +61,11 @@ export function Navbar() {
             </SheetTrigger>
             <SheetContent>
               <div className="flex flex-col gap-6 mt-8">
-                <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-lg font-medium cursor-pointer">Features</a>
-                <button onClick={() => setContactOpen(true)} className="text-lg font-medium cursor-pointer bg-transparent border-none p-0 text-left">Contact Us</button>
-                <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-lg font-medium cursor-pointer">How it Works</a>
+                <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-lg font-medium cursor-pointer">How It Works</a>
+                <a href="#output-preview" onClick={(e) => scrollToSection(e, 'output-preview')} className="text-lg font-medium cursor-pointer">Output Preview</a>
                 <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="text-lg font-medium cursor-pointer">Pricing</a>
+                <a href="#faq" onClick={(e) => scrollToSection(e, 'faq')} className="text-lg font-medium cursor-pointer">FAQ</a>
+                <button onClick={() => setContactOpen(true)} className="text-lg font-medium cursor-pointer bg-transparent border-none p-0 text-left">Contact Us</button>
                 <Link href="/login">
                   <span className="block w-full">
                     <Button variant="outline" className="w-full justify-start">Log In</Button>
@@ -71,7 +73,7 @@ export function Navbar() {
                 </Link>
                 <Link href="/signup">
                   <span className="block w-full">
-                    <Button className="w-full bg-primary text-primary-foreground">Get Started</Button>
+                    <Button className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90">Start My Claim</Button>
                   </span>
                 </Link>
               </div>

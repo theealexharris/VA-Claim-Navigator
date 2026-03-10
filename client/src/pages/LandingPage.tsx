@@ -3,21 +3,19 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { 
-  CheckCircle2, 
-  Shield, 
-  FileCheck, 
-  ArrowRight, 
-  Star, 
-  Bot,
-  PenTool,
-  Users,
-  Scale,
-  Calculator,
-  BookOpen,
+import {
+  Shield,
+  ArrowRight,
+  Star,
   Check,
+  CheckCircle2,
   Zap,
-  Sparkles
+  Sparkles,
+  ClipboardList,
+  FileText,
+  Eye,
+  ChevronDown,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -38,42 +36,198 @@ import avatar3 from "@assets/stock_images/diverse_professional_7cce766a.jpg";
 import avatar4 from "@assets/stock_images/diverse_professional_b621c6df.jpg";
 import veteranImage from "@assets/IMG_0398_1769121331059.jpeg";
 
+/* ═══════════════════════════════════════════════════════════════════
+   Content Arrays — edit these to update page copy without touching JSX
+   ═══════════════════════════════════════════════════════════════════ */
+
+const trustPills = [
+  "Structured statement draft",
+  "Guided question flow",
+  "Independent private platform",
+  "Built to reduce confusion",
+];
+
+const painPoints = [
+  { icon: AlertCircle, text: "Not sure what information matters most" },
+  { icon: FileText, text: "Confusing paperwork and unclear steps" },
+  { icon: Eye, text: "Easy to miss important claim details" },
+  { icon: ClipboardList, text: "Too much time and frustration doing it alone" },
+];
+
+const solutions = [
+  {
+    icon: ClipboardList,
+    title: "Guided Claim Builder",
+    body: "Answer step-by-step questions about service history, conditions, symptoms, and supporting details through a guided workflow.",
+  },
+  {
+    icon: FileText,
+    title: "Structured Statement Draft",
+    body: "Generate a structured supporting statement draft with organized sections for conditions, symptoms, functional impact, and supporting details for review.",
+  },
+  {
+    icon: Eye,
+    title: "Clearer Starting Point",
+    body: "Start from a more organized written draft instead of a blank page so you can review, refine, and prepare next filing steps more confidently.",
+  },
+];
+
+const steps = [
+  {
+    num: "01",
+    title: "Answer guided questions",
+    body: "Provide claim-related information through a guided workflow that helps organize the details behind your conditions.",
+  },
+  {
+    num: "02",
+    title: "Build your statement draft",
+    body: "The platform structures your responses into a written supporting statement draft with clearer sections and formatting.",
+  },
+  {
+    num: "03",
+    title: "Review before submission",
+    body: "Read through the draft carefully, verify the details, and use it as a more organized starting point for your filing process.",
+  },
+];
+
+const comparisonRows: [string, string][] = [
+  ["Start with a blank page", "Start with a structured draft"],
+  ["Hard to organize symptoms clearly", "Guided question flow"],
+  ["Easy to overlook important details", "Organized sections for review"],
+  ["Time-consuming and frustrating", "More focused preparation"],
+  ["No clear structure", "Clearer written output"],
+];
+
+const trustItems = [
+  "Independent private software platform",
+  "Guided step-by-step workflow",
+  "Structured written statement draft",
+  "Designed for user review before filing",
+];
+
+const differentiators = [
+  {
+    title: "Not another vague claim service",
+    body: "We show you the guided workflow and the kind of written draft you're building toward — before you sign up.",
+  },
+  {
+    title: "Built around clarity",
+    body: "Instead of broad promises, the platform focuses on organization, process clarity, and your review before submission.",
+  },
+  {
+    title: "Trust-first approach",
+    body: "We clearly state our independence from the VA, avoid guarantee claims, and explain exactly what the software does.",
+  },
+];
+
+/**
+ * Proof cards — placeholder section.
+ * TODO: Replace these cards with real testimonials, redacted screenshots,
+ * video proof, funnel metrics, and partner/credibility logos when available.
+ */
+const proofCards = [
+  {
+    title: "What users can expect",
+    body: "A clearer process, more organized information, and a stronger written starting point before filing.",
+  },
+  {
+    title: "Why the output matters",
+    body: "Seeing a structured draft reduces uncertainty and makes the product feel tangible instead of abstract.",
+  },
+  {
+    title: "What increases trust",
+    body: "Showing the real workflow, real draft structure, and clear disclaimers helps visitors feel more confident.",
+  },
+];
+
+const faqCategories = [
+  {
+    heading: "Product & Output",
+    items: [
+      {
+        q: "What is the end product?",
+        a: "The platform generates a structured written supporting statement draft based on your responses. You should review all output carefully before submission or use.",
+      },
+      {
+        q: "What does the platform help me do?",
+        a: "It helps organize claim-related information through a guided workflow and turns those answers into a clearer supporting statement draft for review.",
+      },
+      {
+        q: "How long does it take?",
+        a: "That depends on the complexity of the situation, but many users can build a structured draft within about 30 minutes.",
+      },
+    ],
+  },
+  {
+    heading: "Trust & Compliance",
+    items: [
+      {
+        q: "Is VA Claim Navigator affiliated with the VA?",
+        a: "No. VA Claim Navigator is an independent private software platform and is not affiliated with or endorsed by the Department of Veterans Affairs.",
+      },
+      {
+        q: "Does the platform guarantee a rating or outcome?",
+        a: "No. VA Claim Navigator does not guarantee any VA decision, rating, approval, or benefit outcome.",
+      },
+      {
+        q: "Is this legal or medical advice?",
+        a: "No. The platform is intended to help users prepare and organize information. It does not provide legal or medical advice.",
+      },
+      {
+        q: "Do I still need to review my information?",
+        a: "Yes. You should carefully review all information and generated output before submission or use.",
+      },
+    ],
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════════
+   Landing Page Component
+   ═══════════════════════════════════════════════════════════════════ */
+
 export default function LandingPage() {
   const { toast } = useToast();
   const { getPriceId } = useStripePriceIds();
   const [showGetStarted, setShowGetStarted] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState("");
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [selectedTier, setSelectedTier] = useState<{name: string, price: string, tier: string}>({ name: "", price: "", tier: "" });
+  const [selectedTier, setSelectedTier] = useState<{ name: string; price: string; tier: string }>({
+    name: "",
+    price: "",
+    tier: "",
+  });
   const [vetsServedCount, setVetsServedCount] = useState(526);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showPromoPopup, setShowPromoPopup] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
+  /* ── Data fetching ── */
   useEffect(() => {
     fetch(apiUrl("/api/stats/vets-served"))
-      .then(res => res.json())
-      .then(data => {
-        if (data.count) {
-          setVetsServedCount(data.count);
-        }
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.count) setVetsServedCount(data.count);
       })
       .catch(() => {
-        // Keep default value on error
+        /* keep default */
       });
   }, []);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
-      // Browsers require muted for autoplay — user can unmute via controls
       video.muted = true;
       video.currentTime = 0;
       video.play().catch(() => {
-        // Autoplay blocked by browser policy; video will wait for user interaction
+        /* autoplay blocked */
       });
     }
   }, []);
+
+  /* ── Handlers ── */
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const handleFeatureClick = (featureTitle: string) => {
     setSelectedFeature(featureTitle);
@@ -81,62 +235,50 @@ export default function LandingPage() {
   };
 
   const handlePaidTierClick = async (tierName: string, price: string) => {
-    // Check if user is logged in first
     try {
       const authCheck = await fetch(apiUrl("/api/auth/me"), { credentials: "include" });
       const isLoggedIn = authCheck.status === 200;
 
-      // Pro tier - go to profile first, then payment after saving ($97)
       if (tierName === "Pro") {
         localStorage.setItem("selectedTier", "pro");
         localStorage.setItem("pendingProPayment", "true");
         localStorage.removeItem("pendingDeluxePayment");
-        if (isLoggedIn) {
-          window.location.href = "/dashboard/profile";
-        } else {
-          window.location.href = "/signup?tier=pro";
-        }
+        window.location.href = isLoggedIn ? "/dashboard/profile" : "/signup?tier=pro";
         return;
       }
 
-      // Deluxe tier - go to profile first, then payment after saving
       if (tierName === "Deluxe") {
         localStorage.setItem("selectedTier", "deluxe");
         localStorage.setItem("pendingDeluxePayment", "true");
         localStorage.removeItem("pendingProPayment");
-        if (isLoggedIn) {
-          window.location.href = "/dashboard/profile";
-        } else {
-          window.location.href = "/signup?tier=deluxe";
-        }
+        window.location.href = isLoggedIn ? "/dashboard/profile" : "/signup?tier=deluxe";
         return;
       }
     } catch (error) {
       console.error("Auth check failed:", error);
     }
-    
-    // Fallback for other tiers
-    setSelectedTier({ 
-      name: tierName, 
-      price, 
-      tier: tierName.toLowerCase() 
-    });
+
+    setSelectedTier({ name: tierName, price, tier: tierName.toLowerCase() });
     setShowPaymentDialog(true);
   };
 
   const handleCheckout = async () => {
     const priceId = getPriceId(selectedTier.tier);
     if (!priceId) {
-      toast({ title: "Payment not configured", description: "This plan is not available for checkout right now. Please try again later.", variant: "destructive" });
+      toast({
+        title: "Payment not configured",
+        description: "This plan is not available for checkout right now. Please try again later.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsProcessingPayment(true);
-    
+
     try {
       const response = await authFetch("/api/stripe/checkout", {
         method: "POST",
-        body: JSON.stringify({ priceId, tier: selectedTier.tier })
+        body: JSON.stringify({ priceId, tier: selectedTier.tier }),
       });
 
       if (response.status === 401) {
@@ -145,30 +287,52 @@ export default function LandingPage() {
       }
 
       const data = await response.json();
-      const checkoutUrl = typeof data?.url === "string" && data.url.startsWith("https://") ? data.url : null;
+      const checkoutUrl =
+        typeof data?.url === "string" && data.url.startsWith("https://") ? data.url : null;
+
       if (checkoutUrl) {
         setShowPaymentDialog(false);
-        // Only open the window AFTER we have a valid Stripe URL (never about:blank)
-        window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+        window.open(checkoutUrl, "_blank", "noopener,noreferrer");
       } else {
-        const errorMessage = data?.message || "Unable to create checkout session. Please try again.";
+        const errorMessage =
+          data?.message || "Unable to create checkout session. Please try again.";
         setShowPaymentDialog(false);
         toast({ title: "Payment Error", description: errorMessage, variant: "destructive" });
         console.error("No checkout URL returned", data);
       }
     } catch (error) {
       setShowPaymentDialog(false);
-      toast({ title: "Payment Error", description: "Failed to process payment. Please try again.", variant: "destructive" });
+      toast({
+        title: "Payment Error",
+        description: "Failed to process payment. Please try again.",
+        variant: "destructive",
+      });
       console.error("Checkout error:", error);
     } finally {
       setIsProcessingPayment(false);
     }
   };
 
+  /* ═══════════════════════════════════════════════════════════════════
+     Render
+     ═══════════════════════════════════════════════════════════════════ */
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
-      
+
+      {/* ── Sticky Mobile CTA ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 p-3 backdrop-blur md:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+        <Link href="/signup">
+          <Button
+            className="w-full h-12 text-base font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg"
+            data-testid="button-mobile-cta"
+          >
+            Start My Claim <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+        </Link>
+      </div>
+
+      {/* ── Feature Unlock Dialog ── */}
       <Dialog open={showGetStarted} onOpenChange={setShowGetStarted}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -177,14 +341,15 @@ export default function LandingPage() {
               Unlock {selectedFeature}
             </DialogTitle>
             <DialogDescription className="text-base pt-2">
-              Create your free account to access our {selectedFeature} and all the tools you need to build a winning VA claim.
+              Create your free account to access our {selectedFeature} and the tools you need to
+              build your claim.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Check className="h-4 w-4 text-green-600" />
-                <span>Free to get started - no credit card required</span>
+                <span>Free to get started — no credit card required</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Check className="h-4 w-4 text-green-600" />
@@ -197,399 +362,921 @@ export default function LandingPage() {
             </div>
             <div className="flex flex-col gap-3 pt-2">
               <Link href="/signup">
-                <Button className="w-full h-12 text-lg font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90" data-testid="button-popup-register">
+                <Button
+                  className="w-full h-12 text-lg font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                  data-testid="button-popup-register"
+                >
                   Create Free Account <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <p className="text-center text-sm text-muted-foreground">
-                Already have an account? <Link href="/login" className="text-primary font-medium hover:underline">Log in</Link>
+                Already have an account?{" "}
+                <Link href="/login" className="text-primary font-medium hover:underline">
+                  Log in
+                </Link>
               </p>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-      
-      {/* Hero Section */}
-      <section className="relative pt-12 pb-20 lg:pt-24 lg:pb-32 overflow-hidden">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8 z-10 relative">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 text-secondary-foreground font-medium text-sm border border-secondary/20">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
-                </span>
-                Trusted and Built by Veterans for Veterans!
-              </div>
-              
-              <h1 className="text-5xl lg:text-7xl font-serif font-bold text-primary leading-[1.1] tracking-tight">
-                Get the VA Rating <br/>
-                <span className="text-secondary relative inline-block">
-                  You Deserve
-                  <svg className="absolute w-full h-3 -bottom-1 left-0 text-secondary/30" viewBox="0 0 100 10" preserveAspectRatio="none">
-                    <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
-                  </svg>
-                </span>
-              </h1>
-              
-              <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
-                Stop fighting the VA alone. Our intelligent platform guides you through every step of your disability claim statement, ensuring accuracy and maximizing your success.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Link href="/book-consultation">
-                  <Button size="lg" className="h-14 px-8 text-lg font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg shadow-secondary/20" data-testid="button-book-consultation">
-                    Book Free Strategy Session
-                  </Button>
-                </Link>
-                <Link href="/signup">
+
+      {/* ── Main Content (with bottom padding for mobile sticky CTA) ── */}
+      <main className="pb-20 md:pb-0">
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 1 — HERO
+            Clarity-first: what it is, who it's for, what you get, what to do next
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden">
+          {/* Subtle gradient bg */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-secondary/[0.05]" />
+
+          <div className="container mx-auto px-4 relative">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              {/* ─ Left column: copy ─ */}
+              <div className="space-y-6 z-10">
+                {/* Badge */}
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 text-secondary-foreground font-medium text-sm border border-secondary/20">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary" />
+                  </span>
+                  Guided workflow → structured statement draft
+                </div>
+
+                {/* Headline */}
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-primary leading-[1.1] tracking-tight">
+                  Build Your VA Disability Claim{" "}
+                  <span className="text-secondary relative inline-block">
+                    Within 30 Minutes
+                    <svg
+                      className="absolute w-full h-3 -bottom-1 left-0 text-secondary/30"
+                      viewBox="0 0 100 10"
+                      preserveAspectRatio="none"
+                    >
+                      <path
+                        d="M0 5 Q 50 10 100 5"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        fill="none"
+                      />
+                    </svg>
+                  </span>
+                </h1>
+
+                {/* Subheadline */}
+                <p className="text-lg lg:text-xl text-muted-foreground leading-relaxed max-w-xl">
+                  VA Claim Navigator helps veterans answer guided questions and turn their
+                  information into a structured supporting statement draft they can review before
+                  filing.
+                </p>
+
+                {/* CTAs */}
+                <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                  <Link href="/signup">
+                    <Button
+                      size="lg"
+                      className="h-14 px-8 text-lg font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg shadow-secondary/20"
+                      data-testid="button-hero-start"
+                    >
+                      Start My Claim <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
                   <Button
                     size="lg"
                     variant="outline"
                     className="h-14 px-8 text-lg font-semibold border-2 hover:bg-muted/50"
-                    data-testid="button-get-started"
+                    onClick={() => scrollToSection("how-it-works")}
+                    data-testid="button-hero-how"
                   >
-                    Get Started Free
+                    See How It Works
                   </Button>
-                </Link>
-              </div>
-              
-              <div className="flex items-center gap-4 text-sm text-muted-foreground pt-4">
-                <div className="flex -space-x-2">
-                  {[avatar1, avatar2, avatar3, avatar4].map((avatar, i) => (
-                    <img 
-                      key={i} 
-                      src={avatar} 
-                      alt={`Veteran ${i + 1}`}
-                      className="h-8 w-8 rounded-full border-2 border-white object-cover"
-                    />
+                </div>
+
+                {/* Trust pills */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {trustPills.map((item) => (
+                    <span
+                      key={item}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground"
+                    >
+                      <Check className="h-3 w-3 text-green-600" />
+                      {item}
+                    </span>
                   ))}
                 </div>
-                <div className="flex items-center gap-1">
-                  <div className="flex">
-                    {[1,2,3,4].map(i => <Star key={i} className="h-4 w-4 fill-secondary text-secondary" />)}
-                    <div className="relative h-4 w-4">
-                      <Star className="h-4 w-4 text-gray-300 fill-gray-300 absolute" />
-                      <div className="overflow-hidden w-1/2 absolute">
-                        <Star className="h-4 w-4 fill-secondary text-secondary" />
+
+                {/* Social proof */}
+                <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
+                  <div className="flex -space-x-2">
+                    {[avatar1, avatar2, avatar3, avatar4].map((src, i) => (
+                      <img
+                        key={i}
+                        src={src}
+                        alt={`Veteran ${i + 1}`}
+                        className="h-8 w-8 rounded-full border-2 border-white object-cover"
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="flex">
+                      {[1, 2, 3, 4].map((i) => (
+                        <Star key={i} className="h-4 w-4 fill-secondary text-secondary" />
+                      ))}
+                      <div className="relative h-4 w-4">
+                        <Star className="h-4 w-4 text-gray-300 fill-gray-300 absolute" />
+                        <div className="overflow-hidden w-1/2 absolute">
+                          <Star className="h-4 w-4 fill-secondary text-secondary" />
+                        </div>
+                      </div>
+                    </div>
+                    <span className="font-semibold text-primary">4.5/5 from Veterans</span>
+                  </div>
+                </div>
+
+                {/* Compliance note */}
+                <p className="text-xs text-muted-foreground/70 max-w-lg leading-relaxed">
+                  Not affiliated with or endorsed by the Department of Veterans Affairs. No rating
+                  or outcome is guaranteed.
+                </p>
+              </div>
+
+              {/* ─ Right column: UI mockup card ─ */}
+              <div className="relative">
+                <div className="rounded-2xl border-2 border-border/50 bg-white p-3 shadow-2xl shadow-primary/10">
+                  <div className="rounded-xl border border-border bg-muted/30 p-4">
+                    {/* Window chrome */}
+                    <div className="mb-4 flex items-center gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-green-400/70" />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {/* Builder steps */}
+                      <div className="rounded-xl border border-border bg-white p-4">
+                        <p className="mb-3 text-sm font-semibold text-primary">
+                          Guided Claim Builder
+                        </p>
+                        {[
+                          "Service history",
+                          "Conditions & symptoms",
+                          "Functional impact",
+                          "Supporting details",
+                        ].map((field, idx) => (
+                          <div
+                            key={field}
+                            className="mb-2 last:mb-0 rounded-lg border border-border bg-muted/40 p-2.5"
+                          >
+                            <span className="block text-[10px] uppercase tracking-widest text-muted-foreground/70 font-semibold">
+                              Step {idx + 1}
+                            </span>
+                            <span className="text-sm text-foreground">{field}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Output preview */}
+                      <div className="rounded-xl border border-secondary/30 bg-secondary/5 p-4">
+                        <p className="text-sm font-semibold text-primary mb-3">
+                          Output Preview
+                        </p>
+                        {[
+                          "Condition Summary Section",
+                          "Symptoms & Functional Impact Section",
+                          "Supporting Evidence / Records Section",
+                          "User Review Reminder",
+                        ].map((item) => (
+                          <div
+                            key={item}
+                            className="mb-2 last:mb-0 rounded-lg bg-white border border-border p-2.5 text-xs text-foreground"
+                          >
+                            {item}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
-                  <span className="font-semibold text-primary">4.5/5 from Veterans</span>
                 </div>
               </div>
             </div>
-            
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 border-4 border-white transform rotate-2 hover:rotate-0 transition-transform duration-500 flex justify-center">
-              <video
-                ref={videoRef}
-                src={heroVideo}
-                playsInline
-                autoPlay
-                muted
-                loop
-                controls
-                className="max-h-[600px] w-auto rounded-xl"
-                data-testid="video-hero"
-              />
-            </div>
-          </div>
-        </div>
-        
-        {/* Background Elements */}
-        <div className="absolute top-0 right-0 -z-10 w-1/2 h-full bg-gray-50/50 clip-path-slant"></div>
-      </section>
-
-      {/* How it Works Section */}
-      <section id="how-it-works" className="py-24 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-secondary uppercase tracking-wider mb-2">HOW IT WORKS</h2>
-            <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-4">Three Simple Steps to Your Claim Statement</h3>
-            <p className="text-lg text-muted-foreground">
-              Our streamlined process takes the confusion out of articulating your VA Disability Supplemental Statement in support of your claims.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="text-center p-8">
-              <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl font-bold text-secondary">1</span>
-              </div>
-              <h4 className="text-xl font-bold text-primary mb-3 font-serif">Tell Us About Your Service</h4>
-              <p className="text-muted-foreground">Answer guided questions about your military service, conditions, and current symptoms.</p>
-            </div>
-            <div className="text-center p-8">
-              <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl font-bold text-secondary">2</span>
-              </div>
-              <h4 className="text-xl font-bold text-primary mb-3 font-serif">Build Your Evidence Package</h4>
-              <p className="text-muted-foreground">Upload documents, create statements, and gather buddy letters with our smart tools.</p>
-            </div>
-            <div className="text-center p-8">
-              <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl font-bold text-secondary">3</span>
-              </div>
-              <h4 className="text-xl font-bold text-primary mb-3 font-serif">Submit With Confidence</h4>
-              <p className="text-muted-foreground">Review your self-generated supplemental Claim Statement and you can submit knowing you have the strongest case possible.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Grid */}
-      <section id="features" className="py-24 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-4">Everything You Need to Win Your Claim</h2>
-            <p className="text-lg text-muted-foreground">The VA system is complex. Our platform simplifies it into a clear, step-by-step path to success.</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard 
-              icon={<Shield className="h-10 w-10 text-secondary" />}
-              title="Intelligent Claim Builder"
-              description="Our adaptive system asks the right questions based on your specific conditions, ensuring no detail is missed."
-              onClick={() => handleFeatureClick("Intelligent Claim Builder")}
-            />
-            <FeatureCard 
-              icon={<FileCheck className="h-10 w-10 text-secondary" />}
-              title="Evidence Automation"
-              description="We help you gather, organize, and format the exact medical evidence the VA raters are looking for."
-              onClick={() => handleFeatureClick("Evidence Automation")}
-            />
-            <FeatureCard 
-              icon={<Bot className="h-10 w-10 text-secondary" />}
-              title="Warrior AI Coach"
-              description="Get instant answers to your questions and guidance on how to articulate your symptoms effectively."
-              onClick={() => handleFeatureClick("Warrior AI Coach")}
-            />
-            <FeatureCard 
-              icon={<BookOpen className="h-10 w-10 text-secondary" />}
-              title="Education Library"
-              description="Access a comprehensive library of video tutorials and articles explaining every step of the VA process."
-              onClick={() => handleFeatureClick("Education Library")}
-            />
-            <div className="md:col-span-2 flex justify-center items-start">
-              <img 
-                src={veteranImage} 
-                alt="Veteran at VA Liberty Building" 
-                className="rounded-xl shadow-lg max-w-md w-full object-cover"
-                data-testid="img-veteran-feature"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Vets Served Counter Section */}
-      <section className="py-16 bg-gradient-to-r from-primary/5 to-secondary/5">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10">
-            <h3 className="text-2xl md:text-3xl font-serif font-bold text-primary text-center md:text-right" data-testid="text-goal-message">
-              Goal to 1 Million Vets Served!
-            </h3>
-            <div className="bg-white rounded-xl shadow-lg px-8 py-4 border-2 border-secondary/30" data-testid="counter-vets-served">
-              <span className="text-4xl md:text-5xl font-mono font-bold text-primary tracking-wider">
-                {(() => {
-                  const padded = vetsServedCount.toString().padStart(7, '0');
-                  return `${padded[0]},${padded.slice(1, 4)},${padded.slice(4, 7)}`;
-                })()}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">PRICING</h2>
-            <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-4">Invest in Your Future Benefits</h3>
-            <p className="text-lg text-muted-foreground">
-              Choose the plan that fits your needs. All plans include access to our proven claim-building methodology.
-            </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto" id="pricing-grid">
-            {/* Starter Plan */}
-            <Card className="relative border-2 border-primary hover:shadow-xl transition-shadow">
-              <CardHeader className="text-center pb-2">
-                <CardTitle className="text-2xl font-serif text-primary">Starter</CardTitle>
-                <CardDescription className="text-sm">
-                  Perfect for veterans just beginning their claim journey
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="text-center mb-6">
-                  <span className="text-4xl font-bold text-primary">FREE</span>
-                </div>
-                <ul className="space-y-3 mb-6 text-sm">
-                  <PricingFeature>Free 30-min 1:1 consult call</PricingFeature>
-                  <PricingFeature>Email Support</PricingFeature>
-                </ul>
-                <Link href="/signup">
-                  <Button
-                    className="w-full h-11 font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
-                    data-testid="button-starter"
-                  >
-                    Get Started Free
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 -z-10 w-1/2 h-full bg-gray-50/50 clip-path-slant" />
+        </section>
 
-            {/* Pro Plan - Most Popular */}
-            <Card className="relative border-2 border-secondary shadow-xl z-10">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <span className="bg-secondary text-secondary-foreground text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                  <Zap className="h-3 w-3" /> Most Popular
-                </span>
-              </div>
-              <CardHeader className="text-center pb-2 pt-6">
-                <CardTitle className="text-2xl font-serif text-primary">PRO</CardTitle>
-                <CardDescription className="text-sm">
-                  Complete Do-It-Yourself toolkit for VA Disability Supplemental Claim Statement generation
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="text-center mb-6">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-4xl font-bold text-primary">$97</span>
-                    <span className="text-muted-foreground text-sm">/One Time Rate</span>
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 2 — PROBLEM
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                Filing a disability claim can feel confusing, time-consuming, and overwhelming
+              </h2>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Many veterans struggle to know what details matter, how to organize their
+                information, or how to explain their conditions clearly. When the process feels
+                unclear, it becomes easier to delay filing or overlook important information.
+              </p>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4 max-w-6xl mx-auto">
+              {painPoints.map(({ icon: Icon, text }) => (
+                <div
+                  key={text}
+                  className="rounded-xl border border-border bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/5">
+                    <Icon className="h-5 w-5 text-primary" />
                   </div>
+                  <p className="text-base leading-7 text-foreground">{text}</p>
                 </div>
-                <ul className="space-y-3 mb-6 text-sm">
-                  <PricingFeature>Everything in Starter</PricingFeature>
-                  <PricingFeature>Intelligent Claim Builder</PricingFeature>
-                  <PricingFeature>Unlimited Document Uploads</PricingFeature>
-                  <PricingFeature>Evidence Organization Tools</PricingFeature>
-                  <PricingFeature>AI Coach Access</PricingFeature>
-                  <PricingFeature>Statement Builders</PricingFeature>
-                  <PricingFeature>Priority Support</PricingFeature>
-                </ul>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 3 — SOLUTION
+            (id="features" so existing Navbar link works)
+        ════════════════════════════════════════════════════════════════ */}
+        <section id="features" className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
+                THE SOLUTION
+              </h2>
+              <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                A guided platform built around the actual end product
+              </h3>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Instead of leaving you wondering what you receive, VA Claim Navigator shows you the
+                outcome: a structured written supporting statement draft created from your answers.
+              </p>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3 max-w-6xl mx-auto">
+              {solutions.map(({ icon: Icon, title, body }) => (
+                <div
+                  key={title}
+                  className="group rounded-xl border border-border bg-white p-7 shadow-sm hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => handleFeatureClick(title)}
+                  data-testid={`feature-card-${title.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-secondary/10 group-hover:bg-secondary/15 transition-colors">
+                    <Icon className="h-6 w-6 text-secondary" />
+                  </div>
+                  <h4 className="text-xl font-bold text-primary font-serif mb-3">{title}</h4>
+                  <p className="text-muted-foreground leading-relaxed">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 4 — HOW IT WORKS
+        ════════════════════════════════════════════════════════════════ */}
+        <section id="how-it-works" className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
+                HOW IT WORKS
+              </h2>
+              <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                Three simple steps to your structured draft
+              </h3>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                A simple, guided workflow designed to help you move from scattered information to a
+                clearer written draft.
+              </p>
+            </div>
+
+            <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
+              {steps.map(({ num, title, body }) => (
+                <div
+                  key={num}
+                  className="text-center p-8 rounded-xl bg-white border border-border shadow-sm"
+                >
+                  <div className="w-14 h-14 rounded-full bg-secondary/15 flex items-center justify-center mx-auto mb-5">
+                    <span className="text-xl font-bold text-secondary font-serif">{num}</span>
+                  </div>
+                  <h4 className="text-xl font-bold text-primary mb-3 font-serif">{title}</h4>
+                  <p className="text-muted-foreground leading-relaxed">{body}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
+              <Link href="/signup">
                 <Button
-                  className="w-full h-11 font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                  data-testid="button-pro"
-                  onClick={() => handlePaidTierClick("Pro", "$97")}
+                  size="lg"
+                  className="h-14 px-8 text-lg font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg shadow-secondary/20"
+                  data-testid="button-how-start"
                 >
-                  Go Pro
+                  Start My Claim <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-              </CardContent>
-            </Card>
+              </Link>
+            </div>
+          </div>
+        </section>
 
-            {/* Deluxe Plan */}
-            <Card className="relative border-2 border-primary bg-gradient-to-b from-primary/5 to-transparent hover:shadow-xl transition-shadow">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">
-                  White Glove
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 5 — OUTPUT PREVIEW
+            Show the tangible end product to reduce uncertainty
+        ════════════════════════════════════════════════════════════════ */}
+        <section id="output-preview" className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="grid gap-12 lg:grid-cols-2 items-center max-w-6xl mx-auto">
+              {/* Left — description */}
+              <div>
+                <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
+                  OUTPUT PREVIEW
+                </h2>
+                <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                  See what you're building toward
+                </h3>
+                <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                  The actual output is one of the most valuable parts of the platform. Here's the
+                  kind of structured draft you'll create.
+                </p>
+
+                <div className="space-y-3">
+                  {[
+                    "Condition-by-condition sections",
+                    "Symptom and functional impact summaries",
+                    "Supporting evidence and rationale sections",
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3"
+                    >
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <span className="text-foreground">{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="mt-6 text-sm text-muted-foreground italic">
+                  The preview shown is a sample layout. Your actual draft will be generated from
+                  your specific answers.
+                </p>
+              </div>
+
+              {/* Right — draft preview mockup */}
+              {/*
+                TODO: Replace this mockup card with a real blurred or redacted
+                screenshot from the sample statement PDF. Label it clearly as a
+                sample draft preview.
+              */}
+              <div className="rounded-2xl border-2 border-border/50 bg-gradient-to-br from-muted/20 to-muted/40 p-4 shadow-xl">
+                <div className="rounded-xl border border-border bg-white p-6">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground/70 font-semibold mb-2">
+                    Sample Draft Preview (Redacted Example)
+                  </p>
+                  <h4 className="text-xl font-serif font-bold text-primary mb-5">
+                    Supporting Statement
+                  </h4>
+
+                  <div className="space-y-4 text-sm">
+                    <div>
+                      <p className="font-semibold text-foreground">Condition Summary Section</p>
+                      <p className="text-muted-foreground mt-1">
+                        Summary of service-related condition, onset, and impact.
+                      </p>
+                    </div>
+                    <hr className="border-border" />
+                    <div>
+                      <p className="font-semibold text-foreground">Symptoms & Functional Impact</p>
+                      <p className="text-muted-foreground mt-1">
+                        Organized description of daily limitations and functional impairment.
+                      </p>
+                    </div>
+                    <hr className="border-border" />
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        Supporting Evidence / Records
+                      </p>
+                      <p className="text-muted-foreground mt-1">
+                        Structured section for records, statements, and additional information.
+                      </p>
+                    </div>
+                    <hr className="border-border" />
+                    <div className="rounded-lg bg-secondary/5 border border-secondary/20 p-3">
+                      <p className="font-semibold text-primary flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-secondary" />
+                        User Review Reminder
+                      </p>
+                      <p className="text-muted-foreground mt-1">
+                        User verifies all details before submission or next steps.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 6 — VIDEO WALKTHROUGH
+            TODO: Trim the existing walkthrough to 30–45 seconds, add captions
+            in CapCut or Canva, and export an MP4 plus a poster image for fast
+            loading. Recommended flow:
+              1) 5s — who the product is for
+              2) 10s — guided question flow
+              3) 10s — structured output preview
+              4) 5s — user review reminder
+              5) 5s — call to action
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-10">
+                <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
+                  WALKTHROUGH
+                </h2>
+                <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                  See the platform in action
+                </h3>
+                <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+                  Watch a short walkthrough showing the guided questions, the structured output, and
+                  the review step.
+                </p>
+              </div>
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 border-2 border-border/50">
+                <video
+                  ref={videoRef}
+                  src={heroVideo}
+                  playsInline
+                  autoPlay
+                  muted
+                  loop
+                  controls
+                  className="w-full"
+                  data-testid="video-walkthrough"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 7 — COMPARISON TABLE
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary">
+                Why veterans choose a guided process
+              </h2>
+            </div>
+
+            <div className="max-w-4xl mx-auto overflow-hidden rounded-xl border-2 border-border shadow-lg">
+              {/* Table header */}
+              <div className="grid grid-cols-2 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-wide">
+                <div className="px-5 py-4">Doing it alone</div>
+                <div className="border-l border-primary-foreground/20 px-5 py-4">
+                  Using VA Claim Navigator
+                </div>
+              </div>
+              {/* Table rows */}
+              {comparisonRows.map(([left, right], idx) => (
+                <div
+                  key={idx}
+                  className={`grid grid-cols-2 border-t border-border ${
+                    idx % 2 === 0 ? "bg-white" : "bg-muted/20"
+                  }`}
+                >
+                  <div className="px-5 py-4 text-muted-foreground text-sm">{left}</div>
+                  <div className="border-l border-border px-5 py-4 text-foreground font-medium text-sm flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-600 flex-shrink-0 hidden sm:block" />
+                    {right}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 8 — WHAT MAKES US DIFFERENT (Objection Handling)
+            Addresses skepticism naturally before it becomes abandonment
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                What makes VA Claim Navigator different
+              </h2>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Built for veterans who want a clearer process, not vague promises.
+              </p>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3 max-w-5xl mx-auto">
+              {differentiators.map(({ title, body }) => (
+                <div
+                  key={title}
+                  className="rounded-xl border border-secondary/20 bg-gradient-to-br from-secondary/5 to-white p-7 shadow-sm"
+                >
+                  <Shield className="h-6 w-6 text-secondary mb-4" />
+                  <h4 className="text-lg font-bold text-primary font-serif mb-3">{title}</h4>
+                  <p className="text-muted-foreground leading-relaxed">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 9 — VETS SERVED COUNTER + PRICING
+        ════════════════════════════════════════════════════════════════ */}
+
+        {/* Vets Served Counter */}
+        <section className="py-12 bg-gradient-to-r from-primary/5 to-secondary/5">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10">
+              <h3
+                className="text-2xl md:text-3xl font-serif font-bold text-primary text-center md:text-right"
+                data-testid="text-goal-message"
+              >
+                Goal to 1 Million Vets Served!
+              </h3>
+              <div
+                className="bg-white rounded-xl shadow-lg px-8 py-4 border-2 border-secondary/30"
+                data-testid="counter-vets-served"
+              >
+                <span className="text-4xl md:text-5xl font-mono font-bold text-primary tracking-wider">
+                  {(() => {
+                    const padded = vetsServedCount.toString().padStart(7, "0");
+                    return `${padded[0]},${padded.slice(1, 4)},${padded.slice(4, 7)}`;
+                  })()}
                 </span>
               </div>
-              <CardHeader className="text-center pb-2 pt-6">
-                <CardTitle className="text-2xl font-serif text-primary">DELUXE</CardTitle>
-                <CardDescription className="text-sm">
-                  Full-Service 1:1 Coaching and supplemental statement preparation
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="text-center mb-6">
-                  <span className="text-2xl font-bold text-muted-foreground line-through">$999</span>
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-4xl font-bold text-primary">$499</span>
-                    <span className="text-muted-foreground text-sm">/One Time Rate</span>
-                  </div>
-                  <span className="text-sm font-semibold text-green-600 bg-green-100 px-2 py-1 rounded mt-2 inline-block">New Ambassador Promotion</span>
-                </div>
-                <ul className="space-y-3 mb-6 text-sm">
-                  <PricingFeature>Everything in Pro</PricingFeature>
-                  <PricingFeature>Live 1-on-1 coaching sessions</PricingFeature>
-                  <PricingFeature>Personal Assigned Case Consultant</PricingFeature>
-                  <PricingFeature>Live Intake</PricingFeature>
-                  <PricingFeature>Live Review and Audit to support Supplemental Statement</PricingFeature>
-                  <PricingFeature>Live Draft Review and Editing</PricingFeature>
-                  <PricingFeature>Live Final Submission Walk-thru</PricingFeature>
-                </ul>
-                <Button 
-                  className="w-full h-11 font-semibold bg-gradient-to-r from-primary to-primary/80 text-primary-foreground hover:from-primary/90 hover:to-primary/70" 
-                  data-testid="button-deluxe"
-                  onClick={() => handlePaidTierClick("Deluxe", "$499")}
-                >
-                  Go Deluxe
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Business Plan */}
-            <Card className="relative border-2 border-secondary hover:shadow-xl transition-shadow">
-              <CardHeader className="text-center pb-2 pt-6">
-                <CardTitle className="text-2xl font-serif text-primary">BUSINESS</CardTitle>
-                <CardDescription className="text-sm">
-                  For all Businesses, Law Firms, VA Organizations, please contact us.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="text-center mb-6">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-2xl font-bold text-primary">Custom Pricing</span>
-                  </div>
-                  <span className="text-sm font-semibold text-primary bg-primary/10 px-2 py-1 rounded mt-2 inline-block">Enterprise Solutions</span>
-                </div>
-                <ul className="space-y-3 mb-6 text-sm">
-                  <PricingFeature>Volume Licensing</PricingFeature>
-                  <PricingFeature>Dedicated Account Manager</PricingFeature>
-                  <PricingFeature>Custom Integration Support</PricingFeature>
-                  <PricingFeature>Priority Technical Support</PricingFeature>
-                  <PricingFeature>Training and Onboarding</PricingFeature>
-                </ul>
-
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Contact Email</p>
-                  <a
-                    href={`mailto:${CONTACT_EMAIL_ADMIN}`}
-                    className="text-sm font-medium text-primary hover:text-primary/80 underline underline-offset-2"
-                  >
-                    {CONTACT_EMAIL_ADMIN}
-                  </a>
-                </div>
-
-                <a href={`mailto:${CONTACT_EMAIL_ADMIN}`}>
-                  <Button 
-                    className="w-full h-11 font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90" 
-                    data-testid="button-business"
-                  >
-                    Contact Us
-                  </Button>
-                </a>
-              </CardContent>
-            </Card>
+            </div>
           </div>
+        </section>
 
-          <p className="text-sm text-center text-muted-foreground mt-8 max-w-3xl mx-auto italic">
-            Fees are solely for access to the software platform, its document-generation tools, maintenance for use of platform and/or any consulting/coaching/educating. Fees are not connected to official VA document preparation, filing, outcome, or success of any VA disability claim or documents filed.
+        {/* Pricing */}
+        <section id="pricing" className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
+                PRICING
+              </h2>
+              <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                Choose your plan
+              </h3>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Select the plan that fits your needs. All plans include access to our guided
+                claim-building tools.
+              </p>
+            </div>
+
+            <div
+              className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto"
+              id="pricing-grid"
+            >
+              {/* Starter Plan */}
+              <Card className="relative border-2 border-primary hover:shadow-xl transition-shadow">
+                <CardHeader className="text-center pb-2">
+                  <CardTitle className="text-2xl font-serif text-primary">Starter</CardTitle>
+                  <CardDescription className="text-sm">
+                    For veterans just beginning to organize their claim information
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="text-center mb-6">
+                    <span className="text-4xl font-bold text-primary">FREE</span>
+                  </div>
+                  <ul className="space-y-3 mb-6 text-sm">
+                    <PricingFeature>Free 30-min 1:1 consult call</PricingFeature>
+                    <PricingFeature>Email Support</PricingFeature>
+                  </ul>
+                  <Link href="/signup">
+                    <Button
+                      className="w-full h-11 font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
+                      data-testid="button-starter"
+                    >
+                      Get Started Free
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Pro Plan — Most Popular */}
+              <Card className="relative border-2 border-secondary shadow-xl z-10">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="bg-secondary text-secondary-foreground text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                    <Zap className="h-3 w-3" /> Most Popular
+                  </span>
+                </div>
+                <CardHeader className="text-center pb-2 pt-6">
+                  <CardTitle className="text-2xl font-serif text-primary">PRO</CardTitle>
+                  <CardDescription className="text-sm">
+                    Complete Do-It-Yourself toolkit for VA Disability Supplemental Claim Statement
+                    generation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="text-center mb-6">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-4xl font-bold text-primary">$97</span>
+                      <span className="text-muted-foreground text-sm">/One Time Rate</span>
+                    </div>
+                  </div>
+                  <ul className="space-y-3 mb-6 text-sm">
+                    <PricingFeature>Everything in Starter</PricingFeature>
+                    <PricingFeature>Intelligent Claim Builder</PricingFeature>
+                    <PricingFeature>Unlimited Document Uploads</PricingFeature>
+                    <PricingFeature>Evidence Organization Tools</PricingFeature>
+                    <PricingFeature>AI Coach Access</PricingFeature>
+                    <PricingFeature>Statement Builders</PricingFeature>
+                    <PricingFeature>Priority Support</PricingFeature>
+                  </ul>
+                  <Button
+                    className="w-full h-11 font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                    data-testid="button-pro"
+                    onClick={() => handlePaidTierClick("Pro", "$97")}
+                  >
+                    Start My Claim
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Deluxe Plan */}
+              <Card className="relative border-2 border-primary bg-gradient-to-b from-primary/5 to-transparent hover:shadow-xl transition-shadow">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">
+                    White Glove
+                  </span>
+                </div>
+                <CardHeader className="text-center pb-2 pt-6">
+                  <CardTitle className="text-2xl font-serif text-primary">DELUXE</CardTitle>
+                  <CardDescription className="text-sm">
+                    Full-service 1:1 coaching and supplemental statement preparation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="text-center mb-6">
+                    <span className="text-2xl font-bold text-muted-foreground line-through">
+                      $999
+                    </span>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-4xl font-bold text-primary">$499</span>
+                      <span className="text-muted-foreground text-sm">/One Time Rate</span>
+                    </div>
+                    <span className="text-sm font-semibold text-green-600 bg-green-100 px-2 py-1 rounded mt-2 inline-block">
+                      New Ambassador Promotion
+                    </span>
+                  </div>
+                  <ul className="space-y-3 mb-6 text-sm">
+                    <PricingFeature>Everything in Pro</PricingFeature>
+                    <PricingFeature>Live 1-on-1 coaching sessions</PricingFeature>
+                    <PricingFeature>Personal Assigned Case Consultant</PricingFeature>
+                    <PricingFeature>Live Intake</PricingFeature>
+                    <PricingFeature>
+                      Live Review and Audit to support Supplemental Statement
+                    </PricingFeature>
+                    <PricingFeature>Live Draft Review and Editing</PricingFeature>
+                    <PricingFeature>Live Final Submission Walk-thru</PricingFeature>
+                  </ul>
+                  <Button
+                    className="w-full h-11 font-semibold bg-gradient-to-r from-primary to-primary/80 text-primary-foreground hover:from-primary/90 hover:to-primary/70"
+                    data-testid="button-deluxe"
+                    onClick={() => handlePaidTierClick("Deluxe", "$499")}
+                  >
+                    Start My Claim
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Business Plan */}
+              <Card className="relative border-2 border-secondary hover:shadow-xl transition-shadow">
+                <CardHeader className="text-center pb-2 pt-6">
+                  <CardTitle className="text-2xl font-serif text-primary">BUSINESS</CardTitle>
+                  <CardDescription className="text-sm">
+                    For businesses, law firms, and VA organizations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="text-center mb-6">
+                    <span className="text-2xl font-bold text-primary">Custom Pricing</span>
+                    <span className="block text-sm font-semibold text-primary bg-primary/10 px-2 py-1 rounded mt-2">
+                      Enterprise Solutions
+                    </span>
+                  </div>
+                  <ul className="space-y-3 mb-6 text-sm">
+                    <PricingFeature>Volume Licensing</PricingFeature>
+                    <PricingFeature>Dedicated Account Manager</PricingFeature>
+                    <PricingFeature>Custom Integration Support</PricingFeature>
+                    <PricingFeature>Priority Technical Support</PricingFeature>
+                    <PricingFeature>Training and Onboarding</PricingFeature>
+                  </ul>
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4 text-center">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                      Contact Email
+                    </p>
+                    <a
+                      href={`mailto:${CONTACT_EMAIL_ADMIN}`}
+                      className="text-sm font-medium text-primary hover:text-primary/80 underline underline-offset-2"
+                    >
+                      {CONTACT_EMAIL_ADMIN}
+                    </a>
+                  </div>
+                  <a href={`mailto:${CONTACT_EMAIL_ADMIN}`}>
+                    <Button
+                      className="w-full h-11 font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                      data-testid="button-business"
+                    >
+                      Contact Us
+                    </Button>
+                  </a>
+                </CardContent>
+              </Card>
+            </div>
+
+            <p className="text-sm text-center text-muted-foreground mt-8 max-w-3xl mx-auto italic">
+              Fees are solely for access to the software platform, its document-generation tools,
+              maintenance for use of platform and/or any consulting/coaching/educating. Fees are not
+              connected to official VA document preparation, filing, outcome, or success of any VA
+              disability claim or documents filed.
+            </p>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 10 — TRUST / FOUNDER
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] max-w-6xl mx-auto items-start">
+              {/* Left — trust messaging */}
+              <div>
+                <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                  Built with purpose for the veteran community
+                </h2>
+                <p className="text-lg text-muted-foreground leading-relaxed mb-8">
+                  VA Claim Navigator was created to bring more clarity, structure, and support to a
+                  process that too often feels difficult to navigate. The goal is simple: help
+                  veterans prepare more organized claim information with less overwhelm.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {trustItems.map((item) => (
+                    <div
+                      key={item}
+                      className="flex items-center gap-3 rounded-lg border border-border bg-white px-4 py-3.5 shadow-sm"
+                    >
+                      <Shield className="h-4 w-4 text-secondary flex-shrink-0" />
+                      <span className="text-sm font-medium text-foreground">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right — Founder card */}
+              <div className="rounded-xl border-2 border-secondary/30 bg-gradient-to-br from-secondary/5 to-secondary/10 p-7 shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-3">
+                  Founder
+                </p>
+                <h3 className="text-2xl font-serif font-bold text-primary mb-4">
+                  Built by someone who understands the mission
+                </h3>
+                <p className="text-muted-foreground leading-relaxed mb-4">
+                  Created by Alexander Harris, VA Claim Navigator was built to help veterans
+                  navigate one of the most frustrating parts of the process with more clarity, more
+                  structure, and a better starting point.
+                </p>
+                {/* TODO: Replace with a dedicated founder headshot if available */}
+                <img
+                  src={veteranImage}
+                  alt="Alexander Harris — Founder"
+                  className="rounded-lg w-full max-h-48 object-cover border border-border mt-2"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 11 — WHAT VETERANS CAN EXPECT (Proof Architecture)
+            TODO: Replace these placeholder cards with:
+              • Real testimonials from veterans
+              • Redacted screenshots of actual statement drafts
+              • Video proof / screen recordings
+              • Funnel conversion metrics
+              • Partner or credibility logos if available
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                What veterans can expect
+              </h2>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                A clearer process, a tangible output, and the transparency to make a confident
+                decision.
+              </p>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3 max-w-5xl mx-auto">
+              {proofCards.map(({ title, body }) => (
+                <div
+                  key={title}
+                  className="rounded-xl border border-border bg-white p-7 shadow-sm"
+                >
+                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/5">
+                    <CheckCircle2 className="h-6 w-6 text-primary" />
+                  </div>
+                  <h4 className="text-lg font-bold text-primary font-serif mb-3">{title}</h4>
+                  <p className="text-muted-foreground leading-relaxed">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 12 — FAQ
+        ════════════════════════════════════════════════════════════════ */}
+        <section id="faq" className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4 max-w-5xl">
+            <div className="text-center mb-14">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary">
+                Frequently asked questions
+              </h2>
+            </div>
+
+            <div className="grid gap-8 lg:grid-cols-2">
+              {faqCategories.map((category) => (
+                <div key={category.heading}>
+                  <h3 className="text-xl font-serif font-bold text-primary mb-5">
+                    {category.heading}
+                  </h3>
+                  <div className="space-y-3">
+                    {category.items.map((item) => (
+                      <details
+                        key={item.q}
+                        className="group rounded-lg border border-border bg-white shadow-sm"
+                      >
+                        <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-left font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+                          <span className="pr-4">{item.q}</span>
+                          <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform group-open:rotate-180" />
+                        </summary>
+                        <div className="px-4 pb-4 text-sm leading-7 text-muted-foreground">
+                          {item.a}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 13 — FINAL CTA
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4 text-center max-w-3xl">
+            <div className="rounded-2xl border-2 border-secondary/30 bg-gradient-to-br from-secondary/5 to-primary/5 p-10 md:p-14 shadow-xl">
+              <h2 className="text-3xl md:text-5xl font-serif font-bold text-primary mb-5">
+                Start with a clearer draft
+              </h2>
+              <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto">
+                Get a guided workflow and a structured supporting statement draft you can review
+                before taking your next steps.
+              </p>
+              <Link href="/signup">
+                <Button
+                  size="lg"
+                  className="h-16 px-10 text-xl font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-xl shadow-secondary/20"
+                  data-testid="button-final-cta"
+                >
+                  Start My Claim <ArrowRight className="ml-2 h-6 w-6" />
+                </Button>
+              </Link>
+              <p className="mt-5 text-sm text-muted-foreground">
+                Guided • Structured • Independent private platform
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Compliance Disclaimer (above footer) ── */}
+        <div className="border-t border-border bg-muted/30 px-4 py-6 text-center">
+          <p className="text-xs text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+            VA Claim Navigator is an independent private software platform and is not affiliated
+            with or endorsed by the Department of Veterans Affairs. Use of the platform does not
+            guarantee any VA decision, rating, or benefit outcome.
           </p>
         </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-24 bg-white relative overflow-hidden">
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <h2 className="text-4xl md:text-5xl font-serif font-bold mb-6 text-primary">Ready to Take Control of Your Future?</h2>
-          <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Join other Veterans who have successfully filed disability claims statement, using our disability statement generator.
-          </p>
-          <Link href="/signup">
-            <Button size="lg" className="h-16 px-10 text-xl font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-xl">
-              Start Your Claim Now <ArrowRight className="ml-2 h-6 w-6" />
-            </Button>
-          </Link>
-          <p className="mt-6 text-sm text-muted-foreground">No credit card required for initial assessment.</p>
-        </div>
-      </section>
+      </main>
 
       <Footer />
 
-      {/* Payment Dialog */}
+      {/* ── Payment Dialog ── */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -619,7 +1306,7 @@ export default function LandingPage() {
                 <span>Support Statement (AI-generated after review)</span>
               </div>
             </div>
-            <Button 
+            <Button
               className="w-full h-12 text-lg font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90"
               onClick={handleCheckout}
               disabled={isProcessingPayment}
@@ -634,7 +1321,7 @@ export default function LandingPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Free Tier Promo Popup */}
+      {/* ── Free Tier Promo Popup ── */}
       <Dialog open={showPromoPopup} onOpenChange={setShowPromoPopup}>
         <DialogContent className="sm:max-w-md border-4 border-red-500" data-testid="dialog-promo-popup">
           <DialogHeader>
@@ -642,7 +1329,8 @@ export default function LandingPage() {
               Use FREE PROMO PRO PLAN
             </DialogTitle>
             <DialogDescription className="text-center text-base pt-2 text-red-600 font-bold">
-              The FREE Starter tier is temporarily disabled. Please use our FREE PROMO PRO PLAN instead to access all features at no cost!
+              The FREE Starter tier is temporarily disabled. Please use our FREE PROMO PRO PLAN
+              instead to access all features at no cost!
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-4">
@@ -650,12 +1338,12 @@ export default function LandingPage() {
               Sign up with the Pro plan and use promo code at checkout for 100% off.
             </p>
             <Link href="/signup?tier=pro">
-              <Button 
+              <Button
                 className="w-full h-12 text-lg font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90"
                 onClick={() => setShowPromoPopup(false)}
                 data-testid="button-promo-ok"
               >
-                OK - Go to Pro Plan
+                OK — Go to Pro Plan
               </Button>
             </Link>
           </div>
@@ -665,21 +1353,9 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard({ icon, title, description, onClick }: { icon: React.ReactNode, title: string, description: string, onClick?: () => void }) {
-  return (
-    <div 
-      className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 group cursor-pointer"
-      onClick={onClick}
-      data-testid={`feature-card-${title.toLowerCase().replace(/\s+/g, '-')}`}
-    >
-      <div className="mb-6 p-4 rounded-lg bg-primary/5 w-fit group-hover:bg-primary/10 transition-colors">
-        {icon}
-      </div>
-      <h3 className="text-xl font-bold text-primary mb-3 font-serif">{title}</h3>
-      <p className="text-muted-foreground leading-relaxed">{description}</p>
-    </div>
-  );
-}
+/* ═══════════════════════════════════════════════════════════════════
+   Helper Components
+   ═══════════════════════════════════════════════════════════════════ */
 
 function PricingFeature({ children }: { children: React.ReactNode }) {
   return (

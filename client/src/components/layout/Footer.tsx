@@ -31,16 +31,18 @@ export function Footer() {
               <span>VA Claim Navigator<sup className="text-xs align-super">™</sup></span>
             </div>
             <p className="text-primary-foreground/80 max-w-sm leading-relaxed">
-              Empowering veterans to file accurate, complete, and confident disability claims. 
-              We simplify the complex VA process so you can get the benefits you've earned.
+              Helping veterans organize their claim information with a guided workflow and
+              structured supporting statement drafts — designed for clarity and review before filing.
             </p>
           </div>
           
           <div>
             <h4 className="font-serif font-bold mb-4 text-secondary">Platform</h4>
             <ul className="space-y-2">
-              <li><a href="#features" onClick={(e) => handleSectionClick(e, 'features')} className="text-primary-foreground/80 hover:text-white transition-colors cursor-pointer">Features</a></li>
+              <li><a href="#how-it-works" onClick={(e) => handleSectionClick(e, 'how-it-works')} className="text-primary-foreground/80 hover:text-white transition-colors cursor-pointer">How It Works</a></li>
+              <li><a href="#output-preview" onClick={(e) => handleSectionClick(e, 'output-preview')} className="text-primary-foreground/80 hover:text-white transition-colors cursor-pointer">Output Preview</a></li>
               <li><a href="#pricing" onClick={(e) => handleSectionClick(e, 'pricing')} className="text-primary-foreground/80 hover:text-white transition-colors cursor-pointer">Pricing</a></li>
+              <li><a href="#faq" onClick={(e) => handleSectionClick(e, 'faq')} className="text-primary-foreground/80 hover:text-white transition-colors cursor-pointer">FAQ</a></li>
               <li><Link href="/login" className="text-primary-foreground/80 hover:text-white transition-colors">Login</Link></li>
               <li><Link href="/signup" className="text-primary-foreground/80 hover:text-white transition-colors">Sign Up</Link></li>
               <li>
