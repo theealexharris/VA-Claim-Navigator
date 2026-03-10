@@ -255,7 +255,7 @@ export default function LandingPage() {
         return;
       }
     } catch (error) {
-      console.error("Auth check failed:", error);
+      if (import.meta.env.DEV) console.error("Auth check failed:", error);
     }
 
     setSelectedTier({ name: tierName, price, tier: tierName.toLowerCase() });
@@ -298,7 +298,7 @@ export default function LandingPage() {
           data?.message || "Unable to create checkout session. Please try again.";
         setShowPaymentDialog(false);
         toast({ title: "Payment Error", description: errorMessage, variant: "destructive" });
-        console.error("No checkout URL returned", data);
+        if (import.meta.env.DEV) console.error("No checkout URL returned", data);
       }
     } catch (error) {
       setShowPaymentDialog(false);
@@ -307,7 +307,7 @@ export default function LandingPage() {
         description: "Failed to process payment. Please try again.",
         variant: "destructive",
       });
-      console.error("Checkout error:", error);
+      if (import.meta.env.DEV) console.error("Checkout error:", error);
     } finally {
       setIsProcessingPayment(false);
     }

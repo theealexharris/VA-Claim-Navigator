@@ -59,6 +59,21 @@ function safeErrorMessage(error: any, fallback = "An unexpected error occurred")
   return fallback;
 }
 
+/** Redact PII for logs — shows enough to trace bugs without exposing raw data. */
+const isProd = process.env.NODE_ENV === "production";
+/** In production, mask the middle of an email: j***@example.com */
+function maskEmail(email: string): string {
+  if (!isProd) return email;
+  const [local, domain] = email.split("@");
+  if (!domain) return "***";
+  return `${local[0] ?? ""}***@${domain}`;
+}
+/** In production, show only the first 8 chars of a UUID */
+function maskId(id: string): string {
+  if (!isProd) return id;
+  return `${id.slice(0, 8)}…`;
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -82,7 +97,7 @@ export async function registerRoutes(
 
     // Step 2: Row not found — INSERT using service-level client (no accessToken).
     // User-scoped tokens are blocked by RLS from inserting into the users table.
-    console.log("[ENSURE-USER-ROW] No user row found, creating for:", userId);
+    console.log("[ENSURE-USER-ROW] No user row found, creating for:", maskId(userId));
     try {
       const created = await storage.createUser({
         id: userId,
@@ -93,37 +108,37 @@ export async function registerRoutes(
         two_factor_enabled: false,
         profile_completed: false,
       }); // No accessToken → service-level client bypasses RLS INSERT restriction
-      console.log("[ENSURE-USER-ROW] Created user row for:", userId);
+      console.log("[ENSURE-USER-ROW] Created user row for:", maskId(userId));
       if (created) return created;
       // INSERT succeeded but RETURNING blocked by RLS — row IS in DB
-      console.warn("[ENSURE-USER-ROW] INSERT returned no data for:", userId, "— using synthetic");
+      console.warn("[ENSURE-USER-ROW] INSERT returned no data for:", maskId(userId), "— using synthetic");
       return { id: userId, email, stripe_customer_id: null, stripe_subscription_id: null, subscription_tier: "starter", role: "user" };
     } catch (err: any) {
       const msg = err?.message || "";
       if (/duplicate|unique|23505/i.test(msg)) {
         // A row with this id OR email already exists.
         // First: try re-fetch by ID (fastest path — handles true race conditions)
-        console.log("[ENSURE-USER-ROW] Duplicate key on INSERT, re-fetching by ID:", userId);
+        console.log("[ENSURE-USER-ROW] Duplicate key on INSERT, re-fetching by ID:", maskId(userId));
         const byId = await storage.getUser(userId, accessToken);
         if (byId) return byId;
 
         // ID re-fetch returned nothing → the duplicate is on EMAIL, not ID.
         // There is a stale users row with the same email but a different (old) ID.
         // Look it up so FK-dependent inserts use the real DB row id.
-        console.warn("[ENSURE-USER-ROW] ID not found after duplicate — trying email fallback:", email);
+        console.warn("[ENSURE-USER-ROW] ID not found after duplicate — trying email fallback:", maskEmail(email));
         const byEmail = await storage.getUserByEmail(email, accessToken);
         if (byEmail) {
-          console.log("[ENSURE-USER-ROW] Resolved via email. DB id:", byEmail.id, "| session id:", userId);
+          console.log("[ENSURE-USER-ROW] Resolved via email. DB id:", maskId(byEmail.id), "| session id:", maskId(userId));
           return byEmail;
         }
         // RLS may block the user-token email read — retry with service-level client
         const byEmailService = await storage.getUserByEmail(email);
         if (byEmailService) {
-          console.log("[ENSURE-USER-ROW] Resolved via email (service client). DB id:", byEmailService.id);
+          console.log("[ENSURE-USER-ROW] Resolved via email (service client). DB id:", maskId(byEmailService.id));
           return byEmailService;
         }
         // Completely unreadable — last-resort synthetic (FK will likely fail; log for investigation)
-        console.error("[ENSURE-USER-ROW] Cannot resolve user row by ID or email:", userId, email);
+        console.error("[ENSURE-USER-ROW] Cannot resolve user row by ID or email:", maskId(userId), maskEmail(email));
         return { id: userId, email, stripe_customer_id: null, stripe_subscription_id: null, subscription_tier: "starter", role: "user" };
       }
       // Non-duplicate error is critical
@@ -238,7 +253,7 @@ export async function registerRoutes(
       
       // Handle email verification required
       if (result.requireEmailVerification) {
-        console.log(`[REGISTER] Email verification required for: ${email}`);
+        console.log(`[REGISTER] Email verification required for: ${maskEmail(email)}`);
         return res.json({ 
           message: "Please check your email to verify your account",
           requireEmailVerification: true 
@@ -268,7 +283,7 @@ export async function registerRoutes(
             profile_completed: false,
           };
           dbUser = await storage.createUser(userRow); // Service-level client — user token blocked by RLS
-          console.log(`[REGISTER] User saved to navigator: ${authUser.id}`);
+          console.log(`[REGISTER] User saved to navigator: ${maskId(authUser.id)}`);
         } catch (createErr: any) {
           // User row may already exist (e.g. from a previous flow)
           if (createErr?.message?.includes("duplicate") || createErr?.message?.includes("unique") || createErr?.code === "23505") {
@@ -369,7 +384,7 @@ export async function registerRoutes(
               profile_completed: false,
             };
             dbUser = await storage.createUser(userRow); // Service-level client — user token blocked by RLS
-            console.log(`[LOGIN] User saved to navigator: ${authUser.id}`);
+            console.log(`[LOGIN] User saved to navigator: ${maskId(authUser.id)}`);
           } catch (createErr: any) {
             if (createErr?.message?.includes("duplicate") || createErr?.message?.includes("unique") || createErr?.code === "23505") {
               dbUser = await storage.getUser(result.user.id, result.accessToken);
@@ -387,7 +402,7 @@ export async function registerRoutes(
       if (result.accessToken) payload.accessToken = result.accessToken;
       if (result.refreshToken) payload.refreshToken = result.refreshToken;
 
-      console.log(`[LOGIN] Success for: ${email}`);
+      console.log(`[LOGIN] Success for: ${maskEmail(email)}`);
       res.json(payload);
     } catch (error: any) {
       const msg = String(error?.message || "").toLowerCase();
@@ -618,7 +633,7 @@ export async function registerRoutes(
             profile_completed: false,
             ...dbUpdates,
           }); // Service-level client — user token blocked by RLS
-          console.log("[PROFILE PATCH] Created missing user row for:", user.id);
+          console.log("[PROFILE PATCH] Created missing user row for:", maskId(user.id));
         } catch (createErr: any) {
           const errMsg = String(createErr?.message || "");
           if (/duplicate|unique|23505/i.test(errMsg)) {
@@ -679,7 +694,7 @@ export async function registerRoutes(
   app.post("/api/service-history", requireInsforgeAuth(), async (req, res) => {
     try {
       const session = (req as any).insforgeSession;
-      console.log("[SERVICE-HISTORY POST] userId:", session.user.id, "| body keys:", Object.keys(req.body));
+      console.log("[SERVICE-HISTORY POST] userId:", maskId(session.user.id), "| body keys:", Object.keys(req.body));
 
       // Ensure users row exists (service_history has FK → users.id).
       // Use the RETURNED row's id — it may differ from session.user.id if a stale row
@@ -711,7 +726,7 @@ export async function registerRoutes(
         deployments: req.body.deployments || null,
       };
 
-      console.log("[SERVICE-HISTORY POST] Inserting row:", JSON.stringify(dbRow).substring(0, 300));
+      console.log("[SERVICE-HISTORY POST] Inserting row for user:", maskId(effectiveUserId));
       const history = await storage.createServiceHistory(dbRow, session.accessToken);
       console.log("[SERVICE-HISTORY POST] Success, id:", history?.id);
       res.json(history);

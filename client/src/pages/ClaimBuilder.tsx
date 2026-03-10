@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import DOMPurify from "dompurify";
 import { Link, useLocation } from "wouter";
 import { DashboardLayout, getWorkflowProgress } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -132,6 +133,7 @@ export default function ClaimBuilder() {
   const [documentPreviewIntent, setDocumentPreviewIntent] = useState<"print" | "download" | null>(null);
   const [previewHtml, setPreviewHtml] = useState("");
   const printAreaRef = useRef<HTMLDivElement>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [isAnalyzingRecords, setIsAnalyzingRecords] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState("");
@@ -143,6 +145,16 @@ export default function ClaimBuilder() {
   const [showEvidenceReviewPopup, setShowEvidenceReviewPopup] = useState(false);
   const [conditionIdsViewed, setConditionIdsViewed] = useState<Set<string>>(new Set());
   const [conditions, setConditions] = useState<Condition[]>([]);
+
+  // Clean up progress interval on unmount to prevent state updates on unmounted component
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   // When on step 3 (Symptoms & Severity), mark ALL conditions as "clicked" so the
   // Continue button is never permanently blocked by un-clicked tabs. Individual tab
@@ -682,7 +694,6 @@ export default function ClaimBuilder() {
         }
 
         const uploadFullUrl = uploadURL.startsWith("http") ? uploadURL : `${window.location.origin}${uploadURL}`;
-        console.log("[Upload] uploadURL:", uploadURL, "→ uploadFullUrl:", uploadFullUrl);
         const token = getAccessToken();
         const uploadHeaders: Record<string, string> = {
           "Content-Type": file.type || "application/octet-stream",
@@ -1115,7 +1126,7 @@ export default function ClaimBuilder() {
     let phaseIndex = 0;
 
     // Extended progress interval for deep AI analysis (up to 60 seconds)
-    const progressInterval = setInterval(() => {
+    progressIntervalRef.current = setInterval(() => {
       if (phaseIndex < phases.length) {
         setProcessingProgress(phases[phaseIndex].progress);
         setProcessingPhase(phases[phaseIndex].message);
@@ -1195,7 +1206,7 @@ export default function ClaimBuilder() {
         const data = await response.json();
         setGeneratedMemorandum(data.memorandum);
         localStorage.setItem("generatedMemorandum", data.memorandum);
-        clearInterval(progressInterval);
+        clearInterval(progressIntervalRef.current!); progressIntervalRef.current = null;
         setProcessingProgress(100);
         setProcessingPhase("Deep dive analysis complete!");
         setTimeout(() => {
@@ -1218,7 +1229,7 @@ export default function ClaimBuilder() {
           }
         } catch (_) {}
 
-        clearInterval(progressInterval);
+        clearInterval(progressIntervalRef.current!); progressIntervalRef.current = null;
         setIsProcessingClaim(false);
         setProcessingProgress(0);
         setProcessingPhase("Initializing deep dive analysis...");
@@ -1234,7 +1245,7 @@ export default function ClaimBuilder() {
       }
     } catch (error) {
       console.error("Error processing claim:", error);
-      clearInterval(progressInterval);
+      clearInterval(progressIntervalRef.current!); progressIntervalRef.current = null;
       setIsProcessingClaim(false);
       setProcessingProgress(0);
       setProcessingPhase("Initializing deep dive analysis...");
@@ -2862,7 +2873,7 @@ export default function ClaimBuilder() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-auto rounded-lg border bg-white p-6 my-2 text-base" style={{ maxHeight: "70vh" }}>
-            <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml) }} />
           </div>
           <div className="flex flex-wrap gap-2 justify-end pt-4 border-t">
             <Button variant="outline" onClick={() => { setShowDocumentPreview(false); setDocumentPreviewIntent(null); }}>

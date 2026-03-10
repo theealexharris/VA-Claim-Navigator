@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -204,12 +205,50 @@ app.use((req, res, next) => {
 
 
 // ─── Security headers ────────────────────────────────────────────────────────
+const isProd = process.env.NODE_ENV === "production";
 app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+  // HSTS — only in production (prevents browser from falling back to plain HTTP)
+  if (isProd) {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  }
+
+  // Content-Security-Policy — tightened in production; relaxed in dev for Vite HMR
+  if (isProd) {
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        // React bundles need 'self'; Stripe checkout runs in an iframe + loads its own script
+        "script-src 'self' 'unsafe-inline' https://js.stripe.com https://connect.facebook.net",
+        // Tailwind inline styles + Google Fonts
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        // Avatar images, data URIs, blobs (evidence preview), and https for OG images
+        "img-src 'self' data: blob: https:",
+        // Video walkthrough and evidence media
+        "media-src 'self' blob:",
+        // API calls to self + Stripe + Insforge
+        "connect-src 'self' https://*.stripe.com https://*.insforge.com https://vitals.vercel-insights.com",
+        // Stripe payment iframe
+        "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+        // Service workers (if any)
+        "worker-src 'self' blob:",
+        // Block plugins (Flash, Java, etc.)
+        "object-src 'none'",
+        // Restrict <base> to prevent base-tag injection
+        "base-uri 'self'",
+        // Restrict where forms can submit
+        "form-action 'self'",
+      ].join("; ")
+    );
+  }
+
   next();
 });
 
@@ -255,10 +294,21 @@ app.options('/api/storage/upload/*', (req, res) => {
   res.status(204).end();
 });
 
+// ─── File upload rate limiter ────────────────────────────────────────────────
+// Prevents abuse: 20 uploads per user IP per 10 minutes.
+const uploadRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many uploads. Please wait a few minutes before trying again." },
+});
+
 // ─── File upload endpoint (MUST be before express.json()) ───────────────────
 // Accepts uploads with or without auth — Evidence for Claims always works.
 app.put(
   '/api/storage/upload/*',
+  uploadRateLimiter,
   async (req, res) => {
     // CORS headers so uploads work from any origin
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
