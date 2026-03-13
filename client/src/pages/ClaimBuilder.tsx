@@ -432,12 +432,12 @@ export default function ClaimBuilder() {
     setShowUpgradeDialog(true);
   };
 
-  // Force close upgrade dialog if promo is active (safety net)
+  // Force close upgrade dialog if promo is active (safety net) — but NOT when payment is required for Review
   useEffect(() => {
-    if (PROMO_ACTIVE && showUpgradeDialog) {
+    if (PROMO_ACTIVE && showUpgradeDialog && !pendingPaymentForReview) {
       setShowUpgradeDialog(false);
     }
-  }, [showUpgradeDialog]);
+  }, [showUpgradeDialog, pendingPaymentForReview]);
 
   useEffect(() => {
     try {
@@ -1340,19 +1340,13 @@ export default function ClaimBuilder() {
   const canContinueFromStep3 = allConditionsClicked && allConditionsHaveSymptomsFilled;
 
   const handlePrint = () => {
-    if (!isPaidTier && !PROMO_ACTIVE) {
-      safeShowUpgradeDialog();
-      return;
-    }
+    // Payment is already required at Step 3→4 transition — no second gate needed
     setDocumentPreviewIntent("print");
     setShowDocumentPreview(true);
   };
 
   const handleDownloadPDF = () => {
-    if (!isPaidTier && !PROMO_ACTIVE) {
-      safeShowUpgradeDialog();
-      return;
-    }
+    // Payment is already required at Step 3→4 transition — no second gate needed
     setDocumentPreviewIntent("download");
     setShowDocumentPreview(true);
   };
