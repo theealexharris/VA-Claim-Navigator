@@ -145,6 +145,7 @@ export default function ClaimBuilder() {
   const [showEvidenceReviewPopup, setShowEvidenceReviewPopup] = useState(false);
   const [conditionIdsViewed, setConditionIdsViewed] = useState<Set<string>>(new Set());
   const [conditions, setConditions] = useState<Condition[]>([]);
+  const [pendingPaymentForReview, setPendingPaymentForReview] = useState(false);
 
   // Clean up progress interval on unmount to prevent state updates on unmounted component
   useEffect(() => {
@@ -154,6 +155,51 @@ export default function ClaimBuilder() {
         progressIntervalRef.current = null;
       }
     };
+  }, []);
+
+  // Detect payment=success in URL after returning from Stripe checkout
+  const paymentReturnHandled = useRef(false);
+  useEffect(() => {
+    if (paymentReturnHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") === "success") {
+      paymentReturnHandled.current = true;
+      // Clean URL params without reload
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+      // Restore step from before payment redirect
+      const savedStep = localStorage.getItem("claimBuilderStep");
+      if (savedStep) {
+        setCurrentStep(parseInt(savedStep, 10));
+        localStorage.removeItem("claimBuilderStep");
+      }
+      // Update local tier from URL
+      const paidTier = params.get("tier") || "pro";
+      const savedProfile = localStorage.getItem("userProfile");
+      if (savedProfile) {
+        const profile = JSON.parse(savedProfile);
+        profile.subscriptionTier = paidTier;
+        localStorage.setItem("userProfile", JSON.stringify(profile));
+      }
+      localStorage.setItem("paymentComplete", "true");
+      localStorage.setItem("selectedTier", paidTier);
+      setSubscriptionTier(paidTier);
+      toast({ title: "Payment Successful!", description: "Generating your Support Statement now..." });
+      // Auto-trigger claim processing after payment
+      setPendingPaymentForReview(false);
+      // Small delay to let state and evidence settle from localStorage restore, then process claim data
+      setTimeout(() => {
+        const savedEvidence = localStorage.getItem("claimBuilderEvidence");
+        const evidence: Evidence[] = savedEvidence ? JSON.parse(savedEvidence) : [];
+        const hasUploadedEvidence = evidence.some((e: Evidence) => e.status === "uploaded");
+        if (!hasUploadedEvidence) {
+          setShowEvidenceWarningPopup(true);
+        } else {
+          processClaimData();
+        }
+      }, 800);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // When on step 3 (Symptoms & Severity), mark ALL conditions as "clicked" so the
@@ -255,8 +301,9 @@ export default function ClaimBuilder() {
   const { getPriceId } = useStripePriceIds();
 
   const handleSelectPlan = (tierName: string, price: string) => {
-    // During promo, Pro tier is free - activate directly without payment
-    if (tierName === "Pro" && PROMO_ACTIVE) {
+    // When payment is required for Review step, always proceed to Stripe checkout — no promo bypass
+    // For non-review upgrades during promo, Pro tier is free
+    if (!pendingPaymentForReview && tierName === "Pro" && PROMO_ACTIVE) {
       const savedProfile = localStorage.getItem("userProfile");
       const profile = savedProfile ? JSON.parse(savedProfile) : {};
       profile.subscriptionTier = "pro";
@@ -269,12 +316,12 @@ export default function ClaimBuilder() {
       });
       return;
     }
-    
-    // For Deluxe or non-promo, show payment dialog
-    setSelectedTier({ 
-      name: tierName, 
-      price, 
-      link: `/signup?tier=${tierName.toLowerCase()}` 
+
+    // Show payment dialog for Stripe checkout
+    setSelectedTier({
+      name: tierName,
+      price,
+      link: `/signup?tier=${tierName.toLowerCase()}`
     });
     setShowUpgradeDialog(false);
     setShowPaymentDialog(true);
@@ -293,7 +340,7 @@ export default function ClaimBuilder() {
       const { authFetch } = await import("../lib/api-helpers");
       const response = await authFetch("/api/stripe/checkout", {
         method: "POST",
-        body: JSON.stringify({ priceId, tier: tierKey })
+        body: JSON.stringify({ priceId, tier: tierKey, returnTo: pendingPaymentForReview ? "claim-builder" : "dashboard" })
       });
 
       if (response.status === 401) {
@@ -305,7 +352,14 @@ export default function ClaimBuilder() {
       const checkoutUrl = typeof data?.url === "string" && data.url.startsWith("https://") ? data.url : null;
       if (checkoutUrl) {
         setShowPaymentDialog(false);
-        window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+        if (pendingPaymentForReview) {
+          // Save current step so we can restore after returning from Stripe
+          localStorage.setItem("claimBuilderStep", String(currentStep));
+          // Redirect in same tab so user returns to claim-builder with payment=success params
+          window.location.href = checkoutUrl;
+        } else {
+          window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+        }
       } else {
         const errorMessage = data?.message || "Unable to create checkout session. Please try again.";
         toast({ title: "Payment Error", description: errorMessage, variant: "destructive" });
@@ -1096,10 +1150,6 @@ export default function ClaimBuilder() {
 
   const proceedFromEvidenceWarning = async () => {
     setShowEvidenceWarningPopup(false);
-    if (!isPaidTier && !PROMO_ACTIVE) {
-      safeShowUpgradeDialog();
-      return;
-    }
     await processClaimData();
   };
 
@@ -1262,15 +1312,11 @@ export default function ClaimBuilder() {
   
   const confirmNextStep = () => {
     setShowSymptomsPopup(false);
-    // When advancing from Step 3 (Severity) to Step 4: auto-generate Support Statement after review/scan/analyze, then show preview & print only
+    // When advancing from Step 3 (Severity) to Step 4: require Stripe payment first
     if (currentStep === 3) {
-      const hasUploadedEvidence = allEvidence.some(e => e.status === "uploaded");
-      if (!hasUploadedEvidence) {
-        setShowEvidenceWarningPopup(true);
-        return;
-      }
-      // With evidence: run deep-dive analysis to generate Support Statement, then advance to step 4 (preview & print)
-      processClaimData();
+      // Always require payment before advancing to Review — show tier picker
+      setPendingPaymentForReview(true);
+      setShowUpgradeDialog(true);
       return;
     }
     setCurrentStep((prev) => Math.min(prev + 1, steps.length));
@@ -2381,16 +2427,22 @@ export default function ClaimBuilder() {
         </DialogContent>
       </Dialog>
 
-      {/* Upgrade Dialog with Pricing Options - Completely hidden during promo */}
-      {!PROMO_ACTIVE && (
-      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+      {/* Upgrade Dialog with Pricing Options - Always rendered for payment gate */}
+      <Dialog open={showUpgradeDialog} onOpenChange={(open) => {
+        // When in payment-for-review flow, prevent closing without selecting a plan
+        if (!open && pendingPaymentForReview) return;
+        setShowUpgradeDialog(open);
+        if (!open) setPendingPaymentForReview(false);
+      }}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl font-serif text-primary text-center">
-              Upgrade Required
+              {pendingPaymentForReview ? "Payment Required to Continue" : "Upgrade Required"}
             </DialogTitle>
             <DialogDescription className="text-center text-base pt-2">
-              Select a plan to unlock Print, Download, and AI Memorandum features.
+              {pendingPaymentForReview
+                ? "Select a plan and complete payment to generate your Support Statement and access the Review page."
+                : "Select a plan to unlock Print, Download, and AI Memorandum features."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 pt-4">
@@ -2406,7 +2458,7 @@ export default function ClaimBuilder() {
                   <li className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" /> Print & Download</li>
                   <li className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" /> AI Coach Access</li>
                 </ul>
-                <Button 
+                <Button
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold min-h-[44px] touch-manipulation"
                   onClick={(e) => { e.stopPropagation(); handleSelectPlan("Pro", "$97"); }}
                   data-testid="button-select-pro"
@@ -2427,7 +2479,7 @@ export default function ClaimBuilder() {
                   <li className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" /> 1-on-1 Coaching</li>
                   <li className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" /> Personal Consultant</li>
                 </ul>
-                <Button 
+                <Button
                   className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground hover:from-primary/90 font-semibold min-h-[44px] touch-manipulation"
                   onClick={(e) => { e.stopPropagation(); handleSelectPlan("Deluxe", "$499"); }}
                   data-testid="button-select-deluxe"
@@ -2436,17 +2488,19 @@ export default function ClaimBuilder() {
                 </Button>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => setShowUpgradeDialog(false)}
-            >
-              Continue with Starter
-            </Button>
+            {/* Only show "Continue with Starter" when NOT in the payment-for-review flow */}
+            {!pendingPaymentForReview && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setShowUpgradeDialog(false)}
+              >
+                Continue with Starter
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
-      )}
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>

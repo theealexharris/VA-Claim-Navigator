@@ -1622,7 +1622,8 @@ export async function registerRoutes(
 
   const checkoutSchema = z.object({
     priceId: z.string().min(1, "Price ID is required"),
-    tier: z.enum(["pro", "deluxe", "business"]).optional().default("pro")
+    tier: z.enum(["pro", "deluxe", "business"]).optional().default("pro"),
+    returnTo: z.enum(["dashboard", "claim-builder"]).optional().default("dashboard")
   });
 
   app.post("/api/stripe/checkout", requireInsforgeAuth(), async (req, res) => {
@@ -1638,7 +1639,9 @@ export async function registerRoutes(
         });
       }
       
-      const { priceId, tier } = parseResult.data;
+      const { priceId, tier, returnTo } = parseResult.data;
+      const successPath = returnTo === "claim-builder" ? "/dashboard/claim-builder" : "/dashboard";
+      const cancelPath = returnTo === "claim-builder" ? "/dashboard/claim-builder" : "/dashboard";
 
       // Only allow price IDs configured in env (avoids "no such price" from wrong/hardcoded IDs)
       const allowedPro = (process.env.STRIPE_PRICE_ID_PRO || "").trim();
@@ -1695,8 +1698,8 @@ export async function registerRoutes(
       const checkoutSession = await stripeService.createCheckoutSession(
         customerId!,
         priceId,
-        `${req.protocol}://${req.get('host')}/dashboard?payment=success&tier=${tier}`,
-        `${req.protocol}://${req.get('host')}/dashboard?payment=cancelled`,
+        `${req.protocol}://${req.get('host')}${successPath}?payment=success&tier=${tier}`,
+        `${req.protocol}://${req.get('host')}${cancelPath}?payment=cancelled`,
         undefined,
         { userId: user.id, tier }
       );
