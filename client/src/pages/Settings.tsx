@@ -205,7 +205,7 @@ export default function Settings() {
   };
 
   const paymentHistory: PaymentRecord[] = [
-    { id: "1", date: "2024-01-15", amount: "$97.00", plan: "Pro", status: "Completed" },
+    { id: "1", date: "2024-01-15", amount: "$27.00", plan: "Pro", status: "Completed" },
   ];
 
   return (
@@ -458,12 +458,12 @@ export default function Settings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className={`border-2 rounded-lg p-4 text-center ${settings.subscriptionTier === "pro" ? "border-secondary bg-secondary/5" : ""}`}>
                 <h4 className="text-lg font-bold text-primary">PRO</h4>
-                <p className="text-2xl font-bold text-primary my-1">$97</p>
+                <p className="text-2xl font-bold text-primary my-1">$27</p>
                 <p className="text-xs text-muted-foreground mb-2">One Time Rate</p>
                 <Button 
                   className="w-full" 
                   variant={settings.subscriptionTier === "pro" ? "secondary" : "outline"}
-                  onClick={() => handleUpgradePlan("Pro", "$97")}
+                  onClick={() => handleUpgradePlan("Pro", "$27")}
                   disabled={settings.subscriptionTier === "pro" || isProcessingPayment}
                 >
                   {settings.subscriptionTier === "pro" ? "Current Plan" : isProcessingPayment ? "Processing..." : "Upgrade"}
