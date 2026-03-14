@@ -177,7 +177,7 @@ export default function ClaimBuilder() {
         // Add-on purchase: refresh quota and prompt user to print
         toast({ title: "Payment Successful!", description: "You can now print or download your supplemental statement." });
         // Refresh quota display
-        fetch("/api/supplemental-statement/status")
+        fetch("/api/supplemental-statement/status", { credentials: "include" })
           .then((r) => r.json())
           .then((data) => setStatementQuota(data))
           .catch(() => {});

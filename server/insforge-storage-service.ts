@@ -515,22 +515,32 @@ export class InsforgeStorageService implements IStorage {
     if (status.used >= status.allowed) {
       return { allowed: false };
     }
-    const newUsed = status.used + 1;
-    const { error } = await this.getClient(accessToken).database
+    // Optimistic locking: only update if supplemental_statements_used hasn't changed since we read it.
+    // This prevents two simultaneous requests from both passing the quota check (race condition).
+    const { data, error } = await this.getClient(accessToken).database
       .from('users')
-      .update({ supplemental_statements_used: newUsed })
-      .eq('id', userId);
+      .update({ supplemental_statements_used: status.used + 1 })
+      .eq('id', userId)
+      .eq('supplemental_statements_used', status.used)
+      .select('supplemental_statements_used, supplemental_statements_allowed')
+      .maybeSingle();
 
     if (error) throw new Error(`Failed to update supplemental usage: ${error.message}`);
-    return { allowed: true, used: newUsed, allowedCount: status.allowed };
+    if (!data) {
+      // Another concurrent request already incremented — treat as quota exhausted
+      return { allowed: false };
+    }
+    return { allowed: true, used: data.supplemental_statements_used, allowedCount: data.supplemental_statements_allowed };
   }
 
   async incrementSupplementalAllowed(userId: string, amount: number, accessToken?: string): Promise<void> {
+    // Optimistic locking: read current value then conditionally update to prevent double-grants
     const status = await this.getSupplementalStatus(userId, accessToken);
     const { error } = await this.getClient(accessToken).database
       .from('users')
       .update({ supplemental_statements_allowed: status.allowed + amount })
-      .eq('id', userId);
+      .eq('id', userId)
+      .eq('supplemental_statements_allowed', status.allowed);
 
     if (error) throw new Error(`Failed to update supplemental allowed: ${error.message}`);
   }

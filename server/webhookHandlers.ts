@@ -42,20 +42,20 @@ export class WebhookHandlers {
           try {
             if (addonType === 'supplemental_statement') {
               // Add-on purchase: grant 1 additional statement, do not change tier
-              await storage.incrementSupplementalAllowed(userId, 1, null);
+              await storage.incrementSupplementalAllowed(userId, 1, undefined);
               console.log(`[STRIPE WEBHOOK] Granted 1 extra supplemental statement to user ${userId}`);
             } else {
               // Normal plan purchase: update tier
               await storage.updateUser(userId, {
                 subscription_tier: tier as any,
-                stripe_subscription_id: session.subscription as string || null,
+                stripe_subscription_id: session.subscription as string || undefined,
               });
               console.log(`[STRIPE WEBHOOK] Updated user ${userId} to tier ${tier}`);
               // Grant 2 supplemental statements on first paid plan purchase
               if (tier === 'pro' || tier === 'deluxe' || tier === 'business') {
-                const status = await storage.getSupplementalStatus(userId, null);
+                const status = await storage.getSupplementalStatus(userId, undefined);
                 if (status.allowed === 0) {
-                  await storage.incrementSupplementalAllowed(userId, 2, null);
+                  await storage.incrementSupplementalAllowed(userId, 2, undefined);
                   console.log(`[STRIPE WEBHOOK] Granted 2 supplemental statements to new ${tier} user ${userId}`);
                 }
               }
@@ -77,7 +77,7 @@ export class WebhookHandlers {
           if (!customer.deleted && customer.metadata?.userId) {
             await storage.updateUser(customer.metadata.userId, {
               subscription_tier: tier as any,
-              stripe_subscription_id: subscription.status === 'active' ? subscription.id : null,
+              stripe_subscription_id: subscription.status === 'active' ? subscription.id : undefined,
             });
             console.log(`[STRIPE WEBHOOK] Updated subscription for user ${customer.metadata.userId}`);
           }
