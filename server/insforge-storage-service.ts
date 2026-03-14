@@ -495,6 +495,46 @@ export class InsforgeStorageService implements IStorage {
     if (error) throw new Error(`Failed to delete appeal: ${error.message}`);
   }
 
+  // Supplemental statement quota methods
+  async getSupplementalStatus(userId: string, accessToken?: string): Promise<{ used: number; allowed: number }> {
+    const { data, error } = await this.getClient(accessToken).database
+      .from('users')
+      .select('supplemental_statements_used, supplemental_statements_allowed')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error || !data) return { used: 0, allowed: 0 };
+    return {
+      used: data.supplemental_statements_used ?? 0,
+      allowed: data.supplemental_statements_allowed ?? 0,
+    };
+  }
+
+  async checkAndUseSupplementalStatement(userId: string, accessToken?: string): Promise<{ allowed: boolean; used?: number; allowedCount?: number }> {
+    const status = await this.getSupplementalStatus(userId, accessToken);
+    if (status.used >= status.allowed) {
+      return { allowed: false };
+    }
+    const newUsed = status.used + 1;
+    const { error } = await this.getClient(accessToken).database
+      .from('users')
+      .update({ supplemental_statements_used: newUsed })
+      .eq('id', userId);
+
+    if (error) throw new Error(`Failed to update supplemental usage: ${error.message}`);
+    return { allowed: true, used: newUsed, allowedCount: status.allowed };
+  }
+
+  async incrementSupplementalAllowed(userId: string, amount: number, accessToken?: string): Promise<void> {
+    const status = await this.getSupplementalStatus(userId, accessToken);
+    const { error } = await this.getClient(accessToken).database
+      .from('users')
+      .update({ supplemental_statements_allowed: status.allowed + amount })
+      .eq('id', userId);
+
+    if (error) throw new Error(`Failed to update supplemental allowed: ${error.message}`);
+  }
+
   // Referral methods
   async getReferrals(userId: string, accessToken?: string): Promise<any[]> {
     const { data, error } = await this.getClient(accessToken).database

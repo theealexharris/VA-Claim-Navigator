@@ -1620,10 +1620,35 @@ export async function registerRoutes(
     }
   });
 
+  // Supplemental statement quota endpoints
+  app.get("/api/supplemental-statement/status", requireInsforgeAuth(), async (req, res) => {
+    try {
+      const session = (req as any).insforgeSession;
+      const status = await storage.getSupplementalStatus(session.user.id, session.accessToken);
+      res.json({ used: status.used, allowed: status.allowed, remaining: Math.max(0, status.allowed - status.used) });
+    } catch (error: any) {
+      res.status(500).json({ message: safeErrorMessage(error, "Failed to fetch statement status") });
+    }
+  });
+
+  app.post("/api/supplemental-statement/use", requireInsforgeAuth(), async (req, res) => {
+    try {
+      const session = (req as any).insforgeSession;
+      const result = await storage.checkAndUseSupplementalStatement(session.user.id, session.accessToken);
+      if (!result.allowed) {
+        return res.status(402).json({ allowed: false, reason: "payment_required" });
+      }
+      res.json({ allowed: true, used: result.used, allowedCount: result.allowedCount });
+    } catch (error: any) {
+      res.status(500).json({ message: safeErrorMessage(error, "Failed to process statement use") });
+    }
+  });
+
   const checkoutSchema = z.object({
     priceId: z.string().min(1, "Price ID is required"),
     tier: z.enum(["pro", "deluxe", "business"]).optional().default("pro"),
-    returnTo: z.enum(["dashboard", "claim-builder"]).optional().default("dashboard")
+    returnTo: z.enum(["dashboard", "claim-builder"]).optional().default("dashboard"),
+    addonType: z.enum(["supplemental_statement"]).optional(),
   });
 
   app.post("/api/stripe/checkout", requireInsforgeAuth(), async (req, res) => {
@@ -1639,7 +1664,7 @@ export async function registerRoutes(
         });
       }
       
-      const { priceId, tier, returnTo } = parseResult.data;
+      const { priceId, tier, returnTo, addonType } = parseResult.data;
       const successPath = returnTo === "claim-builder" ? "/dashboard/claim-builder" : "/dashboard";
       const cancelPath = returnTo === "claim-builder" ? "/dashboard/claim-builder" : "/dashboard";
 
@@ -1694,14 +1719,17 @@ export async function registerRoutes(
         }
       }
 
-      // Create checkout session with metadata so webhook can update user tier
+      // Create checkout session with metadata so webhook can update user tier / quota
+      const successUrl = addonType
+        ? `${req.protocol}://${req.get('host')}${successPath}?payment=success&tier=${tier}&addon_type=${addonType}`
+        : `${req.protocol}://${req.get('host')}${successPath}?payment=success&tier=${tier}`;
       const checkoutSession = await stripeService.createCheckoutSession(
         customerId!,
         priceId,
-        `${req.protocol}://${req.get('host')}${successPath}?payment=success&tier=${tier}`,
+        successUrl,
         `${req.protocol}://${req.get('host')}${cancelPath}?payment=cancelled`,
         undefined,
-        { userId: user.id, tier }
+        { userId: user.id, tier, ...(addonType ? { addon_type: addonType } : {}) }
       );
 
       res.json({ url: checkoutSession.url });

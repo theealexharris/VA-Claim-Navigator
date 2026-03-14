@@ -146,6 +146,10 @@ export default function ClaimBuilder() {
   const [conditionIdsViewed, setConditionIdsViewed] = useState<Set<string>>(new Set());
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [pendingPaymentForReview, setPendingPaymentForReview] = useState(false);
+  const [showAddonPaymentDialog, setShowAddonPaymentDialog] = useState(false);
+  const [addonPaymentLoading, setAddonPaymentLoading] = useState(false);
+  const [statementQuota, setStatementQuota] = useState<{ used: number; allowed: number; remaining: number } | null>(null);
+  const pendingPrintIntent = useRef<"print" | "download" | null>(null);
 
   // Clean up progress interval on unmount to prevent state updates on unmounted component
   useEffect(() => {
@@ -164,9 +168,22 @@ export default function ClaimBuilder() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("payment") === "success") {
       paymentReturnHandled.current = true;
+      const addonType = params.get("addon_type");
       // Clean URL params without reload
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, "", cleanUrl);
+
+      if (addonType === "supplemental_statement") {
+        // Add-on purchase: refresh quota and prompt user to print
+        toast({ title: "Payment Successful!", description: "You can now print or download your supplemental statement." });
+        // Refresh quota display
+        fetch("/api/supplemental-statement/status")
+          .then((r) => r.json())
+          .then((data) => setStatementQuota(data))
+          .catch(() => {});
+        return;
+      }
+
       // Restore step from before payment redirect
       const savedStep = localStorage.getItem("claimBuilderStep");
       if (savedStep) {
@@ -1339,17 +1356,68 @@ export default function ClaimBuilder() {
     );
   const canContinueFromStep3 = allConditionsClicked && allConditionsHaveSymptomsFilled;
 
-  const handlePrint = () => {
-    // Payment is already required at Step 3→4 transition — no second gate needed
-    setDocumentPreviewIntent("print");
-    setShowDocumentPreview(true);
+  const checkStatementQuota = async (intent: "print" | "download") => {
+    try {
+      const res = await fetch("/api/supplemental-statement/use", { method: "POST" });
+      if (res.status === 402) {
+        // Quota exhausted — show add-on payment dialog
+        pendingPrintIntent.current = intent;
+        setShowAddonPaymentDialog(true);
+        return;
+      }
+      if (!res.ok) throw new Error("quota check failed");
+      const data = await res.json();
+      setStatementQuota({ used: data.used, allowed: data.allowedCount, remaining: Math.max(0, data.allowedCount - data.used) });
+      setDocumentPreviewIntent(intent);
+      setShowDocumentPreview(true);
+    } catch {
+      // On error, fall through and allow print (don't block the veteran)
+      setDocumentPreviewIntent(intent);
+      setShowDocumentPreview(true);
+    }
   };
 
-  const handleDownloadPDF = () => {
-    // Payment is already required at Step 3→4 transition — no second gate needed
-    setDocumentPreviewIntent("download");
-    setShowDocumentPreview(true);
+  const handlePrint = () => checkStatementQuota("print");
+
+  const handleDownloadPDF = () => checkStatementQuota("download");
+
+  const handleAddonPayment = async () => {
+    const priceId = getPriceId("pro");
+    if (!priceId) {
+      toast({ title: "Payment Error", description: "Payment not configured. Please contact support.", variant: "destructive" });
+      return;
+    }
+    setAddonPaymentLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ priceId, tier: "pro", returnTo: "claim-builder", addonType: "supplemental_statement" }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        localStorage.setItem("claimBuilderStep", String(currentStep));
+        window.location.href = data.url;
+      } else {
+        toast({ title: "Payment Error", description: data.message || "Could not start checkout.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Payment Error", description: "Could not start checkout. Please try again.", variant: "destructive" });
+    } finally {
+      setAddonPaymentLoading(false);
+    }
   };
+
+  // Load statement quota when reaching Step 4
+  useEffect(() => {
+    if (currentStep === 4) {
+      fetch("/api/supplemental-statement/status", { credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => setStatementQuota(data))
+        .catch(() => {});
+    }
+  }, [currentStep]);
 
   // Capture printable content when preview opens (also re-capture if memo content changes while open)
   useEffect(() => {
@@ -1803,7 +1871,17 @@ export default function ClaimBuilder() {
                     {currentStep === 4 && (
                       <div className="space-y-6 print:p-0">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 print:hidden">
-                          <h2 className="text-lg sm:text-xl font-bold text-primary font-serif">Review & Print Support Statement</h2>
+                          <div>
+                            <h2 className="text-lg sm:text-xl font-bold text-primary font-serif">Review & Print Support Statement</h2>
+                            {statementQuota && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Statements used: {statementQuota.used} / {statementQuota.allowed}
+                                {statementQuota.remaining > 0
+                                  ? ` · ${statementQuota.remaining} remaining`
+                                  : " · Additional statements $27 each"}
+                              </p>
+                            )}
+                          </div>
                           <div className="flex gap-2 flex-shrink-0">
                             <Button variant="outline" onClick={handlePrint} disabled={isProcessingClaim} className="min-h-[44px] sm:min-h-0">
                               <Printer className="h-4 w-4 mr-2" /> Print
@@ -2564,6 +2642,27 @@ export default function ClaimBuilder() {
               data-testid="button-go-to-profile"
             >
               Go to My Profile <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add-on Statement Payment Dialog */}
+      <Dialog open={showAddonPaymentDialog} onOpenChange={setShowAddonPaymentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-serif text-primary">Additional Statement Required</DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              You have used all {statementQuota?.allowed ?? 2} supplemental statements included with your plan.
+              Pay <strong>$27</strong> to generate one additional statement.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={() => setShowAddonPaymentDialog(false)} disabled={addonPaymentLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddonPayment} disabled={addonPaymentLoading} className="bg-primary text-primary-foreground">
+              {addonPaymentLoading ? "Redirecting..." : "Pay $27 for 1 More Statement"}
             </Button>
           </div>
         </DialogContent>

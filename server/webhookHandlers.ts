@@ -35,15 +35,31 @@ export class WebhookHandlers {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
         const rawTier = (session.metadata?.tier as string) || 'pro';
+        const addonType = session.metadata?.addon_type;
         const validTiers = ['starter', 'pro', 'deluxe', 'business'];
         const tier = validTiers.includes(rawTier) ? rawTier : 'pro';
         if (userId) {
           try {
-            await storage.updateUser(userId, {
-              subscription_tier: tier as any,
-              stripe_subscription_id: session.subscription as string || null,
-            });
-            console.log(`[STRIPE WEBHOOK] Updated user ${userId} to tier ${tier}`);
+            if (addonType === 'supplemental_statement') {
+              // Add-on purchase: grant 1 additional statement, do not change tier
+              await storage.incrementSupplementalAllowed(userId, 1, null);
+              console.log(`[STRIPE WEBHOOK] Granted 1 extra supplemental statement to user ${userId}`);
+            } else {
+              // Normal plan purchase: update tier
+              await storage.updateUser(userId, {
+                subscription_tier: tier as any,
+                stripe_subscription_id: session.subscription as string || null,
+              });
+              console.log(`[STRIPE WEBHOOK] Updated user ${userId} to tier ${tier}`);
+              // Grant 2 supplemental statements on first paid plan purchase
+              if (tier === 'pro' || tier === 'deluxe' || tier === 'business') {
+                const status = await storage.getSupplementalStatus(userId, null);
+                if (status.allowed === 0) {
+                  await storage.incrementSupplementalAllowed(userId, 2, null);
+                  console.log(`[STRIPE WEBHOOK] Granted 2 supplemental statements to new ${tier} user ${userId}`);
+                }
+              }
+            }
           } catch (e: any) {
             console.error('[STRIPE WEBHOOK] Failed to update user:', e.message);
           }
