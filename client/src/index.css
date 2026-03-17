@@ -179,8 +179,12 @@
   border: none !important;
 }
 
+/* Suppress browser-injected print headers/footers (page title, URL, date/time).
+   These artifacts appear because browsers render their chrome inside the @page
+   margin area. Setting margin: 0 collapses that area entirely, hiding them.
+   Actual document margins are handled via body { padding } inside @media print. */
 @page {
-  margin: 0.5in;
+  margin: 0;
 }
 
 @media print {
@@ -188,13 +192,11 @@
     background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-  }
-  
-  @page {
-    margin-top: 0.5in;
-    margin-bottom: 0.5in;
-    margin-left: 0.5in;
-    margin-right: 0.5in;
+    /* Restore document margins now that @page margin is 0.
+       This gives the printed statement clean 0.5in margins on all sides
+       without any browser header/footer chrome appearing. */
+    padding: 0.5in !important;
+    margin: 0 !important;
   }
   
   .print\:block {
