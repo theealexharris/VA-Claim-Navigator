@@ -2016,12 +2016,30 @@ export default function ClaimBuilder() {
                                   </div>
                                 );
                               })()}
-                              {/* To VA Intake Center, at top left under Subj */}
+                              {/* To VA Intake Center + intro paragraph — hardcoded so it always
+                                  appears directly under Subj regardless of AI output variance */}
                               <p style={{ textIndent: 0, textAlign: 'left', fontFamily: 'Arial', fontSize: '11pt', marginTop: '0.5em', marginBottom: 0, lineHeight: 2, border: 'none', borderWidth: 0, boxShadow: 'none' }}>To VA Intake Center,</p>
+                              {(() => {
+                                const _p = getUserProfile();
+                                const _si = getServiceHistory();
+                                const _fn = `${capitalize(_p.firstName) || "[First Name]"} ${capitalize(_p.lastName) || "[Last Name]"}`;
+                                const _li = (capitalize(_p.lastName) || "X").charAt(0).toUpperCase();
+                                const _l4 = _p.ssn ? _p.ssn.slice(-4) : "XXXX";
+                                const _nc = `${_li}${_l4}`;
+                                const _bn = getBranchName(_si.branch);
+                                const _hasEv = allEvidence.some(e => e.status === "uploaded");
+                                return (
+                                  <p style={{ textIndent: '2em', lineHeight: 2, fontFamily: 'Arial', fontSize: '11pt', marginTop: 0, border: 'none', borderWidth: 0 }}>
+                                    I {_fn} ({_nc}), am filing the following statement in connection with my claims for Military Service-Connected benefits per VA Title 38 U.S.C. 1151. {_hasEv ? "I am also submitting additional evidence that supports my claim(s) to be valid, true and associated with my Active Military Service" : "This statement supports my claim(s) to be valid, true and associated with my Active Military Service"} ({_bn}), as Primary and/or Secondary injuries/illness as a direct result of my Military service and hazardous conditions/exposures. Based on the totality of the circumstances, a service connection to my military service has been established per VA Title 38 U.S.C. 1151.
+                                  </p>
+                                );
+                              })()}
                               <div className="max-w-none whitespace-pre-wrap text-justify" data-testid="text-generated-memorandum" style={{ lineHeight: 2, color: 'black', fontFamily: 'Arial', fontSize: '11pt', marginTop: 0, border: 'none', borderWidth: 0 }}>
                                 {(generatedMemorandum.replace(/\n{2,}/g, '\n')).split('\n').filter((line) => {
                                   const t = line.trim();
-                                  return !/^Date:\s*/i.test(t) && !/^From:\s*/i.test(t) && !/^To:\s*(Veteran|VA)?/i.test(t) && !/^Subj:\s*/i.test(t);
+                                  // Filter duplicate header lines and the hardcoded intro paragraph
+                                  return !/^Date:\s*/i.test(t) && !/^From:\s*/i.test(t) && !/^To:\s*(Veteran|VA)?/i.test(t) && !/^Subj:\s*/i.test(t)
+                                    && !/^I .{1,60}am filing the following statement/i.test(t);
                                 }).map((line, idx) => {
                                   const trimmedLine = line.trim();
                                   const isConditionHeading = /^CONDITION\s+\d+:\s*.+:$/i.test(trimmedLine);
