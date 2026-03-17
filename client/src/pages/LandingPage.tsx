@@ -534,38 +534,38 @@ export default function LandingPage() {
                         ))}
                       </div>
                       {/* Sample statement document preview */}
-                      <div className="rounded-xl border border-border bg-white p-3 overflow-hidden relative" style={{ fontFamily: 'Arial, sans-serif' }}>
+                      <div className="rounded-xl border border-border bg-white p-4 overflow-hidden relative" style={{ fontFamily: 'Arial, sans-serif' }}>
                         {/* Diagonal watermark */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden">
-                          <span className="font-bold text-gray-200/80 text-xl select-none whitespace-nowrap" style={{ transform: 'rotate(-35deg)', letterSpacing: '0.05em' }}>
+                          <span className="font-bold text-gray-200/80 text-2xl select-none whitespace-nowrap" style={{ transform: 'rotate(-35deg)', letterSpacing: '0.06em' }}>
                             SAMPLE ONLY
                           </span>
                         </div>
                         {/* Document body */}
-                        <div className="space-y-[3px] text-[8px] leading-snug text-gray-800 relative z-0">
-                          <p className="font-bold text-[9px] text-gray-900">VA CLAIM NAVIGATOR – SUPPLEMENTAL STATEMENT</p>
-                          <p className="text-gray-500 text-[7.5px] italic mb-1">(Sample)</p>
+                        <div className="space-y-1 text-[10px] leading-normal text-gray-800 relative z-0">
+                          <p className="font-bold text-[11px] text-gray-900">VA CLAIM NAVIGATOR – SUPPLEMENTAL STATEMENT</p>
+                          <p className="text-gray-500 text-[9px] italic mb-1">(Sample)</p>
                           <p><span className="font-semibold">Date:</span> 03/09/2026</p>
                           <p><span className="font-semibold">From:</span> Veteran AI Test (SSN: XXX-XX-4569)</p>
                           <p><span className="font-semibold">To:</span> VA Claims Intake Center</p>
                           <p><span className="font-semibold">Subj:</span> Supporting Statement for Service-Connected Claim</p>
-                          <hr className="border-gray-400 my-1" />
-                          <p className="font-bold text-[8px] uppercase tracking-wide">Condition:</p>
+                          <hr className="border-gray-400 my-1.5" />
+                          <p className="font-bold text-[10px] uppercase tracking-wide">Condition:</p>
                           <hr className="border-gray-300" />
                           <p>Left Shoulder Rotator Cuff Tear (incurred during active duty, Feb 2000).</p>
-                          <p className="font-bold text-[8px] uppercase tracking-wide mt-0.5">Current Symptoms:</p>
+                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Current Symptoms:</p>
                           <hr className="border-gray-300" />
                           <p>Chronic pain; reduced range of motion; difficulty with daily activities.</p>
-                          <p className="font-bold text-[8px] uppercase tracking-wide mt-0.5">Evidence:</p>
+                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Evidence:</p>
                           <hr className="border-gray-300" />
                           <p>Service records; VA medical evaluations (summarized).</p>
-                          <p className="font-bold text-[8px] uppercase tracking-wide mt-0.5">Legal Basis:</p>
+                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Legal Basis:</p>
                           <hr className="border-gray-300" />
                           <p>38 CFR § 4.71a; Shedden v. Principi.</p>
-                          <p className="font-bold text-[8px] uppercase tracking-wide mt-0.5">Conclusion:</p>
+                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Conclusion:</p>
                           <hr className="border-gray-300" />
                           <p>Evidence supports service connection and appropriate rating.</p>
-                          <div className="mt-2 pt-1 border-t border-gray-200">
+                          <div className="mt-2.5 pt-1.5 border-t border-gray-200">
                             <p className="italic">Respectfully Submitted,</p>
                             <p className="font-semibold">Veteran AI Test</p>
                           </div>
