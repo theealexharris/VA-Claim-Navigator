@@ -370,8 +370,11 @@ export default function ClaimBuilder() {
       if (checkoutUrl) {
         setShowPaymentDialog(false);
         if (pendingPaymentForReview) {
-          // Save current step so we can restore after returning from Stripe
-          localStorage.setItem("claimBuilderStep", String(currentStep));
+          // Save TARGET step 4 (Review) so the user lands directly on Step 4 after
+          // returning from Stripe. Previously this saved currentStep (3), which
+          // placed the user back on Step 3 where clicking Continue re-triggered the
+          // payment gate — even though they had already paid.
+          localStorage.setItem("claimBuilderStep", "4");
           // Redirect in same tab so user returns to claim-builder with payment=success params
           window.location.href = checkoutUrl;
         } else {
@@ -402,16 +405,24 @@ export default function ClaimBuilder() {
       if (savedProfile) {
         const profile = JSON.parse(savedProfile);
         let tier = profile.subscriptionTier || "starter";
-        // Ensure Deluxe users who paid get subscriptionTier set (same claim builder as Pro)
-        if (tier === "starter" && selectedTier && paymentComplete === "true") {
+
+        // ── Payment-complete guard ──────────────────────────────────────────
+        // If paymentComplete="true" is stored (set by the payment-return
+        // handler) but the userProfile still shows "starter", sync the tier
+        // from selectedTier. This handles edge cases where the payment-return
+        // handler ran on a previous mount but a hot-reload or navigation reset
+        // the in-memory subscriptionTier state back to "starter".
+        if ((tier === "starter" || !tier) && paymentComplete === "true" && selectedTier) {
           const tierKey = selectedTier.toLowerCase();
-          if (tierKey === "deluxe" || tierKey === "pro") {
+          if (tierKey === "deluxe" || tierKey === "pro" || tierKey === "business") {
             profile.subscriptionTier = tierKey;
             localStorage.setItem("userProfile", JSON.stringify(profile));
             tier = tierKey;
             window.dispatchEvent(new Event("workflowProgressUpdate"));
           }
         }
+        // ───────────────────────────────────────────────────────────────────
+
         setSubscriptionTier(tier);
         setUserRole(profile.role || "user");
         if (profile.firstName && profile.lastName && profile.email) {
@@ -1214,6 +1225,36 @@ export default function ClaimBuilder() {
       const ssnFormatted = profile.ssn ? `${profile.ssn.slice(0, 3)}-${profile.ssn.slice(3, 5)}-${profile.ssn.slice(5)}` : "";
       const branchName = getBranchName(serviceInfo.branch);
 
+      // ── Stale-closure guard ───────────────────────────────────────────────
+      // When processClaimData() is called from inside the payment-return
+      // useEffect's setTimeout, the React closure captures conditions and
+      // allEvidence from the FIRST render (empty arrays). By the time the
+      // timer fires, the data-loading useEffect has already written the
+      // restored values to localStorage, so we always prefer the localStorage
+      // snapshot and fall back to the live state only when localStorage is empty.
+      const currentConditions: Condition[] = (() => {
+        try {
+          const saved = localStorage.getItem("claimBuilderConditions");
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+        } catch { /* ignore parse errors */ }
+        return conditions;
+      })();
+
+      const currentEvidence: Evidence[] = (() => {
+        try {
+          const saved = localStorage.getItem("claimBuilderEvidence");
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) return parsed;
+          }
+        } catch { /* ignore parse errors */ }
+        return allEvidence;
+      })();
+      // ─────────────────────────────────────────────────────────────────────
+
       // Categorize evidence for deep analysis
       const categorizeEvidence = (evidence: Evidence[]) => {
         return evidence.filter(e => e.status === "uploaded").map(e => {
@@ -1238,7 +1279,7 @@ export default function ClaimBuilder() {
         });
       };
 
-      const categorizedEvidence = categorizeEvidence(allEvidence);
+      const categorizedEvidence = categorizeEvidence(currentEvidence);
 
       const { authFetch } = await import("../lib/api-helpers");
       const requestBody = JSON.stringify({
@@ -1247,7 +1288,7 @@ export default function ClaimBuilder() {
         phone: profile.phone || "",
         email: profile.email || "",
         branch: branchName,
-        conditions: conditions.map(c => ({
+        conditions: currentConditions.map(c => ({
           name: c.name,
           onsetDate: c.onsetDate,
           frequency: c.frequency,
@@ -1335,9 +1376,12 @@ export default function ClaimBuilder() {
   
   const confirmNextStep = () => {
     setShowSymptomsPopup(false);
-    // When advancing from Step 3 (Severity) to Step 4: require Stripe payment first
-    if (currentStep === 3) {
-      // Always require payment before advancing to Review — show tier picker
+    // When advancing from Step 3 → Step 4: only gate users who have NOT yet paid.
+    // isPaidTier is true once the user has a paid subscription OR returned from
+    // a successful Stripe checkout (subscriptionTier is set to "pro"/"deluxe" in
+    // the payment-return handler and persisted in localStorage). Without this
+    // check the dialog fires again on every "Continue" click — even after payment.
+    if (currentStep === 3 && !isPaidTier) {
       setPendingPaymentForReview(true);
       setShowUpgradeDialog(true);
       return;
