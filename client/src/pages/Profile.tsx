@@ -322,9 +322,9 @@ export default function Profile() {
           if (checkoutUrl) {
             toast({
               title: "Profile saved",
-              description: "Redirecting you to secure payment for Pro ($27)...",
+              description: "Redirecting you to secure payment for Pro ($97)...",
             });
-            // Automatically send user to Stripe to pay $27
+            // Automatically send user to Stripe to pay $97
             window.location.href = checkoutUrl;
             return;
           }
@@ -384,7 +384,7 @@ export default function Profile() {
             <CheckCircle2 className="h-4 w-4 text-primary" />
             <AlertTitle>Complete your profile, then continue to payment</AlertTitle>
             <AlertDescription>
-              Fill in all applicable fields below. When you click &quot;Save Personal Information,&quot; your profile will be saved and you will be automatically taken to our linked Stripe payment page to complete your {pendingDeluxePayment ? "Deluxe purchase ($499)" : "Pro purchase ($27)"}.
+              Fill in all applicable fields below. When you click &quot;Save Personal Information,&quot; your profile will be saved and you will be automatically taken to our linked Stripe payment page to complete your {pendingDeluxePayment ? "Deluxe purchase ($499)" : "Pro purchase ($97)"}.
             </AlertDescription>
           </Alert>
         )}

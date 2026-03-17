@@ -1884,7 +1884,7 @@ export default function ClaimBuilder() {
                                 Statements used: {statementQuota.used} / {statementQuota.allowed}
                                 {statementQuota.remaining > 0
                                   ? ` · ${statementQuota.remaining} remaining`
-                                  : " · Additional statements $27 each"}
+                                  : " · Additional statements $97 each"}
                               </p>
                             )}
                           </div>
@@ -2529,7 +2529,7 @@ export default function ClaimBuilder() {
               <div className="border-2 border-secondary rounded-lg p-4 text-center hover:shadow-lg transition-shadow">
                 <div className="bg-secondary text-secondary-foreground text-xs font-bold px-2 py-1 rounded-full inline-block mb-2">Most Popular</div>
                 <h4 className="text-xl font-serif font-bold text-primary">PRO</h4>
-                <p className="text-3xl font-bold text-primary my-1">$27</p>
+                <p className="text-3xl font-bold text-primary my-1">$97</p>
                 <p className="text-xs text-muted-foreground mb-2">One Time Rate</p>
                 <ul className="text-xs text-left space-y-1 mb-4">
                   <li className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" /> Full Claim Builder</li>
@@ -2538,7 +2538,7 @@ export default function ClaimBuilder() {
                 </ul>
                 <Button
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold min-h-[44px] touch-manipulation"
-                  onClick={(e) => { e.stopPropagation(); handleSelectPlan("Pro", "$27"); }}
+                  onClick={(e) => { e.stopPropagation(); handleSelectPlan("Pro", "$97"); }}
                   data-testid="button-select-pro"
                 >
                   Select Pro
@@ -2660,7 +2660,7 @@ export default function ClaimBuilder() {
             <DialogTitle className="text-xl font-serif text-primary">Additional Statement Required</DialogTitle>
             <DialogDescription className="text-base pt-2">
               You have used all {statementQuota?.allowed ?? 2} supplemental statements included with your plan.
-              Pay <strong>$27</strong> to generate one additional statement.
+              Pay <strong>$97</strong> to generate one additional statement.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
@@ -2668,7 +2668,7 @@ export default function ClaimBuilder() {
               Cancel
             </Button>
             <Button onClick={handleAddonPayment} disabled={addonPaymentLoading} className="bg-primary text-primary-foreground">
-              {addonPaymentLoading ? "Redirecting..." : "Pay $27 for 1 More Statement"}
+              {addonPaymentLoading ? "Redirecting..." : "Pay $97 for 1 More Statement"}
             </Button>
           </div>
         </DialogContent>

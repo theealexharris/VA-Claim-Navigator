@@ -981,7 +981,7 @@ export default function LandingPage() {
                 <CardContent className="pt-4">
                   <div className="text-center mb-6">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-4xl font-bold text-primary">$27</span>
+                      <span className="text-4xl font-bold text-primary">$97</span>
                       <span className="text-muted-foreground text-sm">/One Time Rate</span>
                     </div>
                   </div>
@@ -997,7 +997,7 @@ export default function LandingPage() {
                   <Button
                     className="w-full h-11 font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90"
                     data-testid="button-pro"
-                    onClick={() => handlePaidTierClick("Pro", "$27")}
+                    onClick={() => handlePaidTierClick("Pro", "$97")}
                   >
                     Start My Claim
                   </Button>

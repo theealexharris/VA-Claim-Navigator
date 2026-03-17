@@ -11,7 +11,7 @@ const pricingTiers: PricingTier[] = [
   {
     name: 'Pro',
     description: 'VA Claim Navigator Pro - Full AI-powered claim building and memorandum generation',
-    price: 2700,
+    price: 9700,
     features: [
       'Everything in Starter',
       'Full Claim Building Access',
