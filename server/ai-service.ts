@@ -376,6 +376,7 @@ export interface ClaimMemorandumData {
     type: string;
     description: string;
     fileName?: string;
+    /** Populated by client's categorizeEvidence helper; preserved through Zod schema */
     category?: string;
     extractedText?: string;
   }>;
@@ -569,8 +570,10 @@ Write in professional legal language suitable for a VA claims submission. Do NOT
 
 export async function generateClaimMemorandum(data: ClaimMemorandumData): Promise<string> {
   try {
+    // Safety rail: ensure veteranName is always a non-empty string
+    const safeName = (data.veteranName || "").trim() || "Veteran";
     // Parse veteran name for formatting
-    const nameParts = data.veteranName.trim().split(" ");
+    const nameParts = safeName.split(" ");
     const firstName = nameParts[0] || "";
     const lastName = nameParts[nameParts.length - 1] || "";
     const lastInitial = lastName.charAt(0).toUpperCase();
@@ -589,15 +592,17 @@ export async function generateClaimMemorandum(data: ClaimMemorandumData): Promis
     // STEP 1: Deep dive evidence analysis
     const evidenceAnalysis = await analyzeEvidenceForConditions(data.conditions, data.evidence);
 
-    const conditionsList = data.conditions.map((c, i) => 
-      `${i + 1}. ${c.name}
+    const conditionsList = data.conditions.map((c, i) => {
+      // Safety rail: ensure symptoms is always an array before joining
+      const safeSymptoms = Array.isArray(c.symptoms) ? c.symptoms : [];
+      return `${i + 1}. ${c.name || "Unspecified Condition"}
    - Onset: ${c.onsetDate || "Not specified"}
-   - Frequency: ${c.frequency}
-   - Symptoms: ${c.symptoms.join(", ") || "Not specified"}
+   - Frequency: ${c.frequency || "constant"}
+   - Symptoms: ${safeSymptoms.join(", ") || "Not specified"}
    - Connection: ${c.connectionType === "direct" ? "Direct service connection" : "Secondary condition"}
    - Presumptive: ${c.isPresumptive ? "Yes (PACT Act/Burn Pits/Agent Orange)" : "No"}
-   - Daily Impact: ${c.dailyImpact || "Not specified"}`
-    ).join("\n\n");
+   - Daily Impact: ${c.dailyImpact || "Not specified"}`;
+    }).join("\n\n");
 
     const evidenceList = data.evidence.map((e, i) => 
       `${i + 1}. [${e.category || e.type}] ${e.description}${e.fileName ? ` (File: ${e.fileName})` : ""}`
@@ -662,7 +667,7 @@ REQUIRED MEMORANDUM FORMAT (follow exactly):
 
 Date:   ${currentDate}
 
-From: Veteran ${data.veteranName} (SSN: ${ssnFormatted})
+From: Veteran ${safeName} (SSN: ${ssnFormatted})
 
 To:     Veteran Affairs Claims Intake Center
 
@@ -672,7 +677,7 @@ ________________________________________________________________________________
 
 To VA Intake Center,
 
-I ${data.veteranName} (${nameCode}), am filing the following statement in connection with my claims for Military Service-Connected benefits per VA Title 38 U.S.C. 1151. I am also submitting additional evidence that supports my claim(s) to be valid, true and associated with of my Active Military Service (${data.branch}), as Primary and/or Secondary injuries/illness as a direct result of my Military service and hazardous conditions/exposures. Based on the totality of the circumstances, a service connection to my military service has been established per VA Title 38 U.S.C. 1151.
+I ${safeName} (${nameCode}), am filing the following statement in connection with my claims for Military Service-Connected benefits per VA Title 38 U.S.C. 1151. I am also submitting additional evidence that supports my claim(s) to be valid, true and associated with of my Active Military Service (${data.branch}), as Primary and/or Secondary injuries/illness as a direct result of my Military service and hazardous conditions/exposures. Based on the totality of the circumstances, a service connection to my military service has been established per VA Title 38 U.S.C. 1151.
 
 These conditions should have already been accepted and "presumptively" approved by the VA Executive Administration once discharged from Active Duty. Thus, the VA failed to "service connect" my injuries upon discharge of my Military service which is no fault of mine (the Veteran). I am requesting your office review and approve the following medical conditions as detailed below.
 

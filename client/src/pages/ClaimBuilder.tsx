@@ -465,6 +465,9 @@ export default function ClaimBuilder() {
         const normalized: Condition[] = parsed.map((c) => ({
           ...c,
           connectionType: (c.connectionType === "secondary" ? "secondary" : "direct") as "direct" | "secondary",
+          // Safety rail: ensure symptoms is always an array (old localStorage data may lack it)
+          symptoms: Array.isArray(c.symptoms) ? c.symptoms : [],
+          otherSymptom: c.otherSymptom ?? "",
         }));
         setConditions(normalized);
         if (normalized.length > 0 && JSON.stringify(normalized) !== saved) {
@@ -643,10 +646,13 @@ export default function ClaimBuilder() {
 
   const toggleSymptom = (symptom: string) => {
     const current = conditions[activeConditionIndex];
-    const isCurrentlyChecked = current.symptoms.includes(symptom);
+    // Safety rail: guard against undefined condition or missing symptoms array
+    if (!current) return;
+    const safeSymptoms = Array.isArray(current.symptoms) ? current.symptoms : [];
+    const isCurrentlyChecked = safeSymptoms.includes(symptom);
     const newSymptoms = isCurrentlyChecked
-      ? current.symptoms.filter(s => s !== symptom)
-      : [...current.symptoms, symptom];
+      ? safeSymptoms.filter(s => s !== symptom)
+      : [...safeSymptoms, symptom];
     
     let newDailyImpact = current.dailyImpact;
     
@@ -1833,7 +1839,7 @@ export default function ClaimBuilder() {
                               <div key={symptom} className="flex items-center space-x-2">
                                 <Checkbox 
                                   id={symptom} 
-                                  checked={activeCondition?.symptoms.includes(symptom)}
+                                  checked={activeCondition?.symptoms?.includes(symptom) ?? false}
                                   onCheckedChange={() => toggleSymptom(symptom)}
                                 />
                                 <Label htmlFor={symptom} className="font-normal text-base">{symptom}</Label>
@@ -1841,7 +1847,7 @@ export default function ClaimBuilder() {
                             ))}
                           </div>
                           
-                          {activeCondition?.symptoms.includes("Other") && (
+                          {activeCondition?.symptoms?.includes("Other") && (
                             <div className="mt-3">
                               <Label className="text-base">Please describe other symptoms:</Label>
                               <Input 
@@ -1931,7 +1937,7 @@ export default function ClaimBuilder() {
                                 <div className="font-bold capitalize">{condition.connectionType}{condition.isPresumptive ? " (Presumptive)" : ""}</div>
                                 
                                 <div className="text-muted-foreground">Symptoms:</div>
-                                <div className="font-bold">{condition.symptoms.length > 0 ? condition.symptoms.join(", ") : "None selected"}</div>
+                                <div className="font-bold">{(condition.symptoms?.length ?? 0) > 0 ? (condition.symptoms ?? []).join(", ") : "None selected"}</div>
                               </div>
                             </div>
                           ))}

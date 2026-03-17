@@ -30,6 +30,9 @@ import ConsultationBooking from "@/pages/ConsultationBooking";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 import ComplianceNotice from "@/pages/ComplianceNotice";
+import AffiliatePage from "@/pages/AffiliatePage";
+import AffiliateLogin from "@/pages/AffiliateLogin";
+import AffiliateDashboard from "@/pages/AffiliateDashboard";
 
 function Router() {
   return (
@@ -42,6 +45,10 @@ function Router() {
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/compliance-notice" component={ComplianceNotice} />
+      {/* ── Affiliate Program Routes (Public + Authenticated) ── */}
+      <Route path="/affiliates" component={AffiliatePage} />
+      <Route path="/affiliate/login" component={AffiliateLogin} />
+      <Route path="/affiliate/dashboard" component={AffiliateDashboard} />
       
       {/* Dashboard Routes - Protected */}
       <Route path="/dashboard">

@@ -1236,7 +1236,48 @@ export default function LandingPage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
-            SECTION 13 — FINAL CTA
+            SECTION 13 — AFFILIATE PROGRAM
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="py-20 bg-primary">
+          <div className="container mx-auto px-4 text-center max-w-4xl">
+            <p className="text-secondary font-semibold tracking-widest uppercase text-sm mb-3">
+              Earn While You Help Veterans
+            </p>
+            <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-5">
+              Join the VA Claim Navigator Affiliate Program
+            </h2>
+            <p className="text-lg text-white/80 leading-relaxed mb-8 max-w-2xl mx-auto">
+              Earn <span className="text-secondary font-bold text-xl">20% recurring monthly commission</span> for
+              every subscriber you refer. Perfect for veteran advocates, VSOs, content creators, and military
+              community leaders.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+              {[
+                { stat: "20%", label: "Recurring Monthly Commission", icon: "💰" },
+                { stat: "30-Day", label: "Cookie Tracking Window", icon: "🔗" },
+                { stat: "Real-Time", label: "Dashboard & Analytics", icon: "📊" },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl bg-white/10 border border-white/20 p-6 text-center">
+                  <div className="text-3xl mb-2">{item.icon}</div>
+                  <div className="text-2xl font-bold text-secondary">{item.stat}</div>
+                  <div className="text-white/80 text-sm mt-1">{item.label}</div>
+                </div>
+              ))}
+            </div>
+            <Link href="/affiliates">
+              <Button
+                size="lg"
+                className="h-14 px-10 text-lg font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-xl shadow-secondary/20"
+              >
+                Become an Affiliate Partner <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <p className="mt-4 text-sm text-white/60">Free to join · No cap on earnings · Payouts via PayPal or bank transfer</p>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 14 — FINAL CTA
         ════════════════════════════════════════════════════════════════ */}
         <section className="py-20 bg-white">
           <div className="container mx-auto px-4 text-center max-w-3xl">

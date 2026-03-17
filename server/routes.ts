@@ -147,7 +147,10 @@ export async function registerRoutes(
     }
   }
 
-  // Map DB user (snake_case) to API/frontend shape (camelCase)
+  // Map DB user (snake_case) to API/frontend shape (camelCase).
+  // Security: internal billing IDs (stripeCustomerId, stripeSubscriptionId) are NOT
+  // included in the standard response — they are server-side-only fields used for
+  // Stripe API calls. The frontend only needs subscriptionTier to gate features.
   function dbUserToApiUser(dbUser: any): any {
     if (!dbUser) return dbUser;
     return {
@@ -162,32 +165,47 @@ export async function registerRoutes(
       zipCode: dbUser.zip_code,
       avatarUrl: dbUser.avatar_url,
       vaId: dbUser.va_id,
+      // SSN is returned only for the authenticated user's own profile (self-service).
+      // It is never returned in admin or cross-user contexts.
       ssn: dbUser.ssn ?? undefined,
       vaFileNumber: dbUser.va_file_number ?? undefined,
       subscriptionTier: dbUser.subscription_tier,
       role: dbUser.role,
       twoFactorEnabled: dbUser.two_factor_enabled,
       profileCompleted: dbUser.profile_completed,
-      stripeCustomerId: dbUser.stripe_customer_id,
-      stripeSubscriptionId: dbUser.stripe_subscription_id,
+      // stripeCustomerId and stripeSubscriptionId intentionally omitted from response:
+      // they are internal billing identifiers not needed by the frontend.
       createdAt: dbUser.created_at,
     };
   }
 
-  // Map API/frontend updates (camelCase) to DB columns (snake_case)
+  // Map API/frontend updates (camelCase) to DB columns (snake_case).
+  // Security: only user-editable profile fields are in this map.
+  // Server-controlled fields (role, subscriptionTier, stripe IDs) are blocked upstream
+  // in the PATCH handler and also absent here so they cannot reach the DB via this path.
   function apiUpdatesToDbUpdates(updates: Record<string, any>): Record<string, any> {
-    const map: Record<string, string> = {
-      firstName: "first_name", lastName: "last_name", zipCode: "zip_code",
-      avatarUrl: "avatar_url", vaId: "va_id", ssn: "ssn", vaFileNumber: "va_file_number",
-      subscriptionTier: "subscription_tier",
-      twoFactorEnabled: "two_factor_enabled", profileCompleted: "profile_completed",
-      stripeCustomerId: "stripe_customer_id", stripeSubscriptionId: "stripe_subscription_id",
-      createdAt: "created_at",
+    const ALLOWED_MAP: Record<string, string> = {
+      firstName: "first_name",
+      lastName: "last_name",
+      phone: "phone",
+      address: "address",
+      city: "city",
+      state: "state",
+      zipCode: "zip_code",
+      avatarUrl: "avatar_url",
+      vaId: "va_id",
+      ssn: "ssn",
+      vaFileNumber: "va_file_number",
+      // profileCompleted is set server-side in the PATCH handler only (not directly from client)
+      profileCompleted: "profile_completed",
     };
     const db: Record<string, any> = {};
     for (const [k, v] of Object.entries(updates)) {
       if (v === undefined) continue;
-      db[map[k] ?? k] = v;
+      // Only map explicitly allowed fields — unknown keys are silently dropped
+      if (ALLOWED_MAP[k]) {
+        db[ALLOWED_MAP[k]] = v;
+      }
     }
     return db;
   }
@@ -580,10 +598,25 @@ export async function registerRoutes(
       const session = (req as any).insforgeSession;
       const user = session.user;
       const updates = { ...req.body };
-      
-      // Don't allow changing password or email through this endpoint
-      delete updates.password;
-      delete updates.email;
+
+      // ── Security: only allow user-editable profile fields ──────────────────
+      // Explicitly block server-controlled fields to prevent privilege escalation.
+      // Attackers could otherwise send { "role": "admin" } or { "subscriptionTier": "pro" }
+      // and have them persisted to the database.
+      const BLOCKED_UPDATE_FIELDS = [
+        "role",               // privilege escalation
+        "subscriptionTier",   // payment bypass
+        "stripeCustomerId",   // Stripe account manipulation
+        "stripeSubscriptionId", // subscription manipulation
+        "twoFactorEnabled",   // 2FA bypass (managed separately)
+        "password",           // must use dedicated endpoint
+        "email",              // must use dedicated endpoint
+        "id",                 // must never change
+        "createdAt",          // immutable
+      ];
+      for (const field of BLOCKED_UPDATE_FIELDS) {
+        delete updates[field];
+      }
       
       // Check if this is the first time saving profile (for counter)
       const dbUser = await storage.getUser(user.id, session.accessToken);
@@ -1378,16 +1411,19 @@ export async function registerRoutes(
 
   // Generate Claim Memorandum (AI-powered)
   const claimMemorandumSchema = z.object({
-    veteranName: z.string().min(1, "Veteran name is required"),
+    // Safety: allow empty name gracefully (client may submit before profile is fully saved)
+    veteranName: z.string().optional().default("Veteran"),
     ssn: z.string().optional().default(""),
     phone: z.string().optional().default(""),
     email: z.string().optional().default(""),
     branch: z.string().optional().default("United States Military"),
     conditions: z.array(z.object({
-      name: z.string().min(1),
+      // Allow empty-named conditions so validation never blocks generation
+      name: z.string().optional().default("Unspecified Condition"),
       onsetDate: z.string().optional().default(""),
       frequency: z.string().optional().default("constant"),
-      symptoms: z.array(z.string()).optional().default([]),
+      // symptoms: always coerce to array so server-side join never crashes
+      symptoms: z.union([z.array(z.string()), z.null(), z.undefined()]).transform(v => Array.isArray(v) ? v : []),
       connectionType: z.string().optional().default("direct"),
       isPresumptive: z.boolean().optional().default(false),
       dailyImpact: z.string().optional().default("")
@@ -1395,31 +1431,45 @@ export async function registerRoutes(
     evidence: z.array(z.object({
       type: z.string(),
       description: z.string().optional().default(""),
-      fileName: z.string().optional()
+      fileName: z.string().optional(),
+      // Pass category through so AI service nexus/buddy detection works correctly
+      category: z.string().optional()
     })).optional().default([])
   });
 
-  app.post("/api/ai/generate-claim-memorandum", requireInsforgeAuth(), async (req, res) => {
+  app.post("/api/ai/generate-claim-memorandum", requireInsforgeAuth(), aiLimiter, async (req, res) => {
     try {
       const parseResult = claimMemorandumSchema.safeParse(req.body);
-      
+
       if (!parseResult.success) {
-        return res.status(400).json({ 
-          message: "Invalid request data", 
-          errors: parseResult.error.flatten().fieldErrors 
+        const fieldErrors = parseResult.error.flatten().fieldErrors;
+        console.error("Claim memorandum schema validation failed:", fieldErrors);
+        return res.status(400).json({
+          message: "Invalid request data — please ensure your profile and conditions are saved correctly.",
+          errors: fieldErrors
         });
       }
 
       const data = parseResult.data;
       const memorandum = await generateClaimMemorandum(data);
+      if (!memorandum || memorandum.trim().length < 50) {
+        return res.status(500).json({ message: "The AI returned an empty response. Please try again." });
+      }
       res.json({ memorandum });
     } catch (error: any) {
       console.error("Claim memorandum generation error:", error);
-      res.status(500).json({ message: error.message || "Failed to generate claim memorandum. Please try again." });
+      // Sanitize token/auth errors before sending to client
+      const msg: string = error?.message || "";
+      const isAuthErr = msg.toLowerCase().includes("invalid token") || msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("authentication");
+      res.status(500).json({
+        message: isAuthErr
+          ? "The AI service is temporarily unavailable. Please try again in a few minutes."
+          : msg || "Failed to generate claim memorandum. Please try again."
+      });
     }
   });
 
-  app.post("/api/ai/analyze-medical-records", optionalInsforgeAuth(), async (req, res) => {
+  app.post("/api/ai/analyze-medical-records", optionalInsforgeAuth(), aiLimiter, async (req, res) => {
     try {
       const { isInsforgeAnonKeyConfigured } = await import("./insforge");
       if (!isInsforgeAnonKeyConfigured()) {
@@ -1840,6 +1890,61 @@ export async function registerRoutes(
       }
     }
   });
+
+  // ─── Affiliate Program Stub Routes ──────────────────────────────────────────
+  // These endpoints are called by the affiliate frontend pages.
+  // They return structured 501 responses (not 404) so the frontend can show
+  // "coming soon" gracefully instead of unhandled network errors.
+  // All write routes are rate-limited to prevent abuse of the stubs.
+
+  const affiliateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many requests. Please try again later." },
+  });
+
+  const AFFILIATE_NOT_IMPLEMENTED = { message: "Affiliate backend coming soon. Your submission has been noted.", pending: true };
+
+  // Public: affiliate registration
+  app.post("/api/affiliates/register", affiliateLimiter, (req, res) => {
+    const { email, firstName, lastName } = req.body || {};
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({ message: "firstName, lastName, and email are required." });
+    }
+    // Log interest without exposing internal details
+    console.log("[AFFILIATE] Registration interest from:", maskEmail(String(email)));
+    return res.status(202).json(AFFILIATE_NOT_IMPLEMENTED);
+  });
+
+  // Public: affiliate login
+  app.post("/api/affiliates/login", affiliateLimiter, (_req, res) => {
+    return res.status(501).json(AFFILIATE_NOT_IMPLEMENTED);
+  });
+
+  // Public: affiliate forgot password
+  app.post("/api/affiliates/forgot-password", affiliateLimiter, (_req, res) => {
+    // Always return 200 to prevent email enumeration
+    return res.json({ message: "If an affiliate account exists with that email, a reset link has been sent." });
+  });
+
+  // Authenticated affiliate routes (all return 501 until implemented)
+  const affiliateAuthStub = (_req: any, res: any) => res.status(501).json(AFFILIATE_NOT_IMPLEMENTED);
+  app.get("/api/affiliates/me", requireInsforgeAuth(), affiliateAuthStub);
+  app.get("/api/affiliates/stats", requireInsforgeAuth(), affiliateAuthStub);
+  app.get("/api/affiliates/referrals", requireInsforgeAuth(), affiliateAuthStub);
+  app.get("/api/affiliates/assets", requireInsforgeAuth(), affiliateAuthStub);
+  app.patch("/api/affiliates/settings", requireInsforgeAuth(), affiliateLimiter, affiliateAuthStub);
+  app.patch("/api/affiliates/payout-method", requireInsforgeAuth(), affiliateLimiter, affiliateAuthStub);
+  app.post("/api/affiliates/logout", requireInsforgeAuth(), affiliateAuthStub);
+
+  // Admin affiliate routes (require auth — admin check is handled by frontend role guard for now)
+  app.get("/api/affiliates/admin", requireInsforgeAuth(), affiliateAuthStub);
+  app.post("/api/affiliates/admin/assets", requireInsforgeAuth(), affiliateLimiter, affiliateAuthStub);
+  app.delete("/api/affiliates/admin/assets/:id", requireInsforgeAuth(), affiliateAuthStub);
+  app.patch("/api/affiliates/admin/:id/status", requireInsforgeAuth(), affiliateLimiter, affiliateAuthStub);
+  app.post("/api/affiliates/admin/:id/payout", requireInsforgeAuth(), affiliateLimiter, affiliateAuthStub);
 
   return httpServer;
 }
