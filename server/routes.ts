@@ -22,6 +22,38 @@ import fs from "fs";
 import path from "path";
 import { TEMP_UPLOAD_DIR } from "./constants";
 
+// ─── In-memory account lockout ───────────────────────────────────────────────
+// Tracks failed login attempts per email. Resets on successful login.
+// In-memory only — resets on server restart, which is acceptable for this use case.
+const LOCKOUT_THRESHOLD = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+interface LockoutEntry { count: number; lockedUntil: number | null }
+const loginAttempts = new Map<string, LockoutEntry>();
+
+function checkLockout(email: string): { locked: boolean; msRemaining: number } {
+  const entry = loginAttempts.get(email.toLowerCase());
+  if (!entry || entry.lockedUntil === null) return { locked: false, msRemaining: 0 };
+  if (Date.now() >= entry.lockedUntil) {
+    loginAttempts.delete(email.toLowerCase());
+    return { locked: false, msRemaining: 0 };
+  }
+  return { locked: true, msRemaining: entry.lockedUntil - Date.now() };
+}
+
+function recordFailedLogin(email: string): void {
+  const key = email.toLowerCase();
+  const entry = loginAttempts.get(key) ?? { count: 0, lockedUntil: null };
+  entry.count += 1;
+  if (entry.count >= LOCKOUT_THRESHOLD) {
+    entry.lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+  }
+  loginAttempts.set(key, entry);
+}
+
+function clearLoginAttempts(email: string): void {
+  loginAttempts.delete(email.toLowerCase());
+}
+
 // ─── Rate limiters ───────────────────────────────────────────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -371,8 +403,17 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Email and password are required" });
       }
 
+      // Account lockout check
+      const lockout = checkLockout(email);
+      if (lockout.locked) {
+        const minutesLeft = Math.ceil(lockout.msRemaining / 60_000);
+        return res.status(429).json({
+          message: `Account temporarily locked due to too many failed attempts. Try again in ${minutesLeft} minute${minutesLeft !== 1 ? "s" : ""}.`,
+        });
+      }
+
       console.log(`[LOGIN] Attempting login`);
-      
+
       const result = await signInUser(email, password);
       
       if (!result?.user) {
@@ -420,6 +461,7 @@ export async function registerRoutes(
       if (result.accessToken) payload.accessToken = result.accessToken;
       if (result.refreshToken) payload.refreshToken = result.refreshToken;
 
+      clearLoginAttempts(email);
       console.log(`[LOGIN] Success for: ${maskEmail(email)}`);
       res.json(payload);
     } catch (error: any) {
@@ -427,6 +469,13 @@ export async function registerRoutes(
       const statusCode = error?.statusCode ?? 0;
       console.error("[LOGIN] Error:", error?.message, "| statusCode:", statusCode, "| errorCode:", error?.errorCode);
       if (res.headersSent) return;
+
+      // Track failed login attempts for lockout (only for actual credential failures, not config errors)
+      const errCode = String(error?.errorCode || "").toLowerCase();
+      const isCredentialFailure = statusCode === 401 && (errCode === "auth_unauthorized" || /invalid credentials/i.test(msg));
+      if (isCredentialFailure && req.body?.email) {
+        recordFailedLogin(req.body.email);
+      }
 
       // Actual invalid credentials from Insforge → 401 (must check BEFORE the config catch-all)
       const errorCode = String(error?.errorCode || "").toLowerCase();
@@ -568,6 +617,63 @@ export async function registerRoutes(
       res.json({ message: "Logged out successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/auth/change-password", requireInsforgeAuth(), authLimiter, async (req, res) => {
+    try {
+      const session = (req as any).insforgeSession;
+      const { currentPassword, newPassword } = req.body ?? {};
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "currentPassword and newPassword are required" });
+      }
+      if (typeof newPassword !== "string" || newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters" });
+      }
+      if (currentPassword === newPassword) {
+        return res.status(400).json({ message: "New password must be different from current password" });
+      }
+
+      const email = session.user.email;
+
+      // Step 1: Verify current password by attempting sign-in
+      try {
+        await signInUser(email, currentPassword);
+      } catch {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+
+      // Step 2: Update password via Insforge REST API
+      const { INSFORGE_BASE_URL } = await import("./insforge");
+      const updateRes = await fetch(`${INSFORGE_BASE_URL}/api/auth/users/me`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      if (!updateRes.ok) {
+        const errData = await updateRes.json().catch(() => null);
+        const errMsg = errData?.message || "Failed to update password";
+        return res.status(updateRes.status).json({ message: errMsg });
+      }
+
+      // Step 3: Invalidate other sessions by signing out (current session is still valid for the response)
+      try {
+        await signOutUser(session.accessToken);
+      } catch {
+        // Non-fatal: password was changed; client should log in again
+      }
+
+      res.json({ message: "Password updated successfully. Please sign in again with your new password." });
+    } catch (error: any) {
+      console.error("[CHANGE-PASSWORD] Error:", error?.message);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to change password. Please try again." });
+      }
     }
   });
 
@@ -1339,12 +1445,16 @@ export async function registerRoutes(
   });
 
   // AI Research Routes
-  app.post("/api/ai/research", aiLimiter, async (req, res) => {
+  app.post("/api/ai/research", requireInsforgeAuth(), aiLimiter, async (req, res) => {
     try {
       const { feature, query, context } = req.body;
-      
+
       if (!feature || !query) {
         return res.status(400).json({ message: "Feature and query are required" });
+      }
+
+      if (typeof query === "string" && query.length > 2000) {
+        return res.status(400).json({ message: "Query must be 2000 characters or fewer" });
       }
 
       const validFeatures: FeatureType[] = [
@@ -1364,12 +1474,16 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/ai/condition-guidance", aiLimiter, async (req, res) => {
+  app.post("/api/ai/condition-guidance", requireInsforgeAuth(), aiLimiter, async (req, res) => {
     try {
       const { conditionName } = req.body;
 
       if (!conditionName) {
         return res.status(400).json({ message: "Condition name is required" });
+      }
+
+      if (typeof conditionName === "string" && conditionName.length > 200) {
+        return res.status(400).json({ message: "Condition name must be 200 characters or fewer" });
       }
 
       const guidance = await getConditionGuidance(conditionName);

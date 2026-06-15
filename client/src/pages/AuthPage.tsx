@@ -93,7 +93,9 @@ export default function AuthPage() {
 
     const origin = window.location.origin;
     let path = "/dashboard";
-    if (tierParam === "deluxe" || pendingDeluxe === "true") {
+    if (tierParam === "starter") {
+      path = "/book-consultation";
+    } else if (tierParam === "deluxe" || pendingDeluxe === "true") {
       localStorage.setItem("pendingDeluxePayment", "true");
       localStorage.setItem("selectedTier", "deluxe");
       path = "/dashboard/profile";

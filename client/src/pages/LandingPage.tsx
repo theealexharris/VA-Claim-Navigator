@@ -1004,7 +1004,7 @@ export default function LandingPage() {
                     <PricingFeature>Free 30-min 1:1 consult call</PricingFeature>
                     <PricingFeature>Email Support</PricingFeature>
                   </ul>
-                  <Link href="/signup">
+                  <Link href="/signup?tier=starter">
                     <Button
                       className="w-full h-11 font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
                       data-testid="button-starter"
@@ -1031,10 +1031,19 @@ export default function LandingPage() {
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-center mb-6">
+                    <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-1">
+                      Founding Veteran Pricing
+                    </p>
+                    <span className="text-2xl font-bold text-muted-foreground line-through">
+                      $297
+                    </span>
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-4xl font-bold text-primary">$97</span>
+                      <span className="text-4xl font-bold text-primary">$197</span>
                       <span className="text-muted-foreground text-sm">/One Time Rate</span>
                     </div>
+                    <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-1 rounded mt-2 inline-block">
+                      Limited Founding Member Rate
+                    </span>
                   </div>
                   <ul className="space-y-3 mb-6 text-sm">
                     <PricingFeature>Everything in Starter</PricingFeature>
@@ -1048,7 +1057,7 @@ export default function LandingPage() {
                   <Button
                     className="w-full h-11 font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90"
                     data-testid="button-pro"
-                    onClick={() => handlePaidTierClick("Pro", "$97")}
+                    onClick={() => handlePaidTierClick("Pro", "$197")}
                   >
                     Start My Claim
                   </Button>
@@ -1070,13 +1079,11 @@ export default function LandingPage() {
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-center mb-6">
-                    <span className="text-2xl font-bold text-muted-foreground line-through">
-                      $999
-                    </span>
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-4xl font-bold text-primary">$499</span>
+                      <span className="text-4xl font-bold text-primary">$997</span>
                       <span className="text-muted-foreground text-sm">/One Time Rate</span>
                     </div>
+                    <p className="text-sm text-muted-foreground mt-1">or two payments of $500</p>
                     <span className="text-sm font-semibold text-green-600 bg-green-100 px-2 py-1 rounded mt-2 inline-block">
                       New Ambassador Promotion
                     </span>
@@ -1095,7 +1102,7 @@ export default function LandingPage() {
                   <Button
                     className="w-full h-11 font-semibold bg-gradient-to-r from-primary to-primary/80 text-primary-foreground hover:from-primary/90 hover:to-primary/70"
                     data-testid="button-deluxe"
-                    onClick={() => handlePaidTierClick("Deluxe", "$499")}
+                    onClick={() => handlePaidTierClick("Deluxe", "$997")}
                   >
                     Start My Claim
                   </Button>

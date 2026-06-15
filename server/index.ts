@@ -13,6 +13,20 @@ import { promisify } from "node:util";
 import { WebhookHandlers } from './webhookHandlers';
 import { TEMP_UPLOAD_DIR } from './constants';
 
+// ─── Required env-var startup guard ─────────────────────────────────────────
+// In production both vars must be set. In dev we warn so the dev loop isn't broken.
+const REQUIRED_ENV = ["SESSION_SECRET", "DATABASE_URL"];
+const missingEnv = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (missingEnv.length > 0) {
+  const msg = `[STARTUP] Missing required environment variable(s): ${missingEnv.join(", ")}`;
+  if (process.env.NODE_ENV === "production") {
+    console.error(msg);
+    process.exit(1);
+  } else {
+    console.warn(msg + " — continuing in dev mode.");
+  }
+}
+
 // ─── Process-level error handlers ───────────────────────────────────────────
 // Prevent the server from silently dying on unhandled errors.
 process.on("uncaughtException", (err) => {
@@ -247,6 +261,26 @@ app.use((_req, res, next) => {
         "form-action 'self'",
       ].join("; ")
     );
+  } else {
+    // Dev: allow Vite HMR (WebSocket + eval), Stripe, and local origins
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        "img-src 'self' data: blob: https:",
+        "media-src 'self' blob:",
+        // ws:// needed for Vite HMR WebSocket; https://*.stripe.com for Stripe SDK
+        "connect-src 'self' ws://localhost:* ws://127.0.0.1:* https://*.stripe.com https://*.insforge.com",
+        "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+        "worker-src 'self' blob:",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join("; ")
+    );
   }
 
   next();
@@ -459,6 +493,33 @@ app.use((req, res, next) => {
   res.on("close", () => clearTimeout(timer));
   next();
 });
+
+// ─── Server-level rate limiters ─────────────────────────────────────────────
+// These sit above route-level limiters and provide coarse-grained protection.
+const generalApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please slow down and try again later." },
+});
+const serverAuthLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many login attempts. Please wait 15 minutes before trying again." },
+});
+const serverAiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many AI requests. Please wait a moment and try again." },
+});
+app.use("/api/", generalApiLimiter);
+app.use("/api/auth/login", serverAuthLoginLimiter);
+app.use("/api/ai/", serverAiLimiter);
 
 // ─── Request logger ─────────────────────────────────────────────────────────
 app.use((req, res, next) => {
