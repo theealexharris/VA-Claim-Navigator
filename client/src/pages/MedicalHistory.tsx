@@ -631,7 +631,7 @@ export default function MedicalHistory() {
         <Dialog open={showAddCondition} onOpenChange={setShowAddCondition}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-xl">Add New Condition</DialogTitle>
+              <DialogTitle className="text-xl">List Current Service Connected Conditions</DialogTitle>
               <DialogDescription className="text-base">Enter the details of your medical condition.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-4">
