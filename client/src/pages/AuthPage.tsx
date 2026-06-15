@@ -46,7 +46,7 @@ export default function AuthPage() {
       .catch(() => setAuthConfigError("Could not reach the server. Please check your internet connection and try again."));
   }, []);
 
-  // Sync view when URL changes; set Deluxe pending when user lands on signup with tier=deluxe
+  // Sync view when URL changes; set pending payment flags when user lands on signup with a paid tier
   useEffect(() => {
     if (isLogin) { setView("login"); setShowLoginVerificationHint(false); }
     else if (isSignup) {
@@ -60,6 +60,10 @@ export default function AuthPage() {
         localStorage.setItem("pendingProPayment", "true");
         localStorage.removeItem("pendingDeluxePayment");
         localStorage.setItem("selectedTier", "pro");
+      } else if (tierParam === "starter") {
+        localStorage.setItem("selectedTier", "starter");
+        localStorage.removeItem("pendingDeluxePayment");
+        localStorage.removeItem("pendingProPayment");
       }
     }
   }, [isLogin, isSignup]);
@@ -88,12 +92,15 @@ export default function AuthPage() {
     const tierParam = urlParams.get("tier");
     const pendingDeluxe = localStorage.getItem("pendingDeluxePayment");
     const pendingPro = localStorage.getItem("pendingProPayment");
+    const storedTier = localStorage.getItem("selectedTier");
     const redirectAfterLogin = sessionStorage.getItem("redirectAfterLogin");
     sessionStorage.removeItem("redirectAfterLogin");
 
     const origin = window.location.origin;
     let path = "/dashboard";
-    if (tierParam === "starter") {
+    // Starter is funnel-only: always send to consultation calendar, never to dashboard
+    if (tierParam === "starter" || storedTier === "starter") {
+      localStorage.setItem("selectedTier", "starter");
       path = "/book-consultation";
     } else if (tierParam === "deluxe" || pendingDeluxe === "true") {
       localStorage.setItem("pendingDeluxePayment", "true");
@@ -159,7 +166,7 @@ export default function AuthPage() {
           title: "Check your email",
           description: "We sent a 6-digit verification code to " + formData.email,
         });
-        return; // DO NOT navigate to dashboard
+        return; // DO NOT navigate yet
       }
 
       // Immediate login (no verification) – populate profile and redirect
@@ -203,10 +210,19 @@ export default function AuthPage() {
 
       toast({ title: "Email verified!", description: "Welcome to VA Claim Navigator™." });
 
-      // If they chose Deluxe or Pro, send them to profile to complete then pay
+      // Starter is funnel-only – send to consultation calendar, never dashboard
+      const storedTier = localStorage.getItem("selectedTier");
+      const tierParam = new URLSearchParams(window.location.search).get("tier");
       const pendingDeluxe = localStorage.getItem("pendingDeluxePayment");
       const pendingPro = localStorage.getItem("pendingProPayment");
-      const redirect = (pendingDeluxe === "true" || pendingPro === "true") ? "/dashboard/profile" : "/dashboard";
+
+      let redirect = "/dashboard";
+      if (tierParam === "starter" || storedTier === "starter") {
+        localStorage.setItem("selectedTier", "starter");
+        redirect = "/book-consultation";
+      } else if (pendingDeluxe === "true" || pendingPro === "true") {
+        redirect = "/dashboard/profile";
+      }
       window.location.href = redirect;
     } catch (error: any) {
       toast({

@@ -9,7 +9,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user && !redirecting) {
+    if (loading) return;
+
+    if (!user && !redirecting) {
       setRedirecting(true);
       // Store the intended destination so user can return after login
       const currentPath = location;
@@ -17,6 +19,16 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem("redirectAfterLogin", currentPath);
       }
       setLocation("/login");
+      return;
+    }
+
+    // Starter tier is funnel-only — block dashboard access and send to consultation calendar
+    if (user && !redirecting) {
+      const selectedTier = localStorage.getItem("selectedTier");
+      if (selectedTier === "starter") {
+        setRedirecting(true);
+        setLocation("/book-consultation");
+      }
     }
   }, [user, loading, setLocation, redirecting, location]);
 
@@ -36,7 +48,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Redirecting to login...</p>
+          <p className="mt-4 text-muted-foreground">Redirecting...</p>
         </div>
       </div>
     );
