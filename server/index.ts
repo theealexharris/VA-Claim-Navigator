@@ -194,10 +194,11 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
 ];
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
+// Single source of truth for which browser origins we trust.
+const isAllowedOrigin = (origin?: string): boolean => {
+  if (!origin) return false;
   const isDev = process.env.NODE_ENV !== "production";
-  if (origin && (
+  return (
     allowedOrigins.includes(origin) ||
     // Only allow Vercel preview URLs matching our project (not any .vercel.app)
     /^https:\/\/va-claim-navigator[a-z0-9-]*\.vercel\.app$/.test(origin) ||
@@ -205,8 +206,12 @@ app.use((req, res, next) => {
     origin === "https://app.vaclaimnavigator.com" ||
     // Localhost only in development
     (isDev && (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")))
-  )) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
+  );
+};
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin as string);
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
@@ -318,8 +323,8 @@ app.post(
 // ─── File upload: OPTIONS preflight (CORS) ──────────────────────────────────
 app.options('/api/storage/upload/*', (req, res) => {
   const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+  if (isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin as string);
   }
   res.setHeader('Access-Control-Allow-Methods', 'PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -344,8 +349,10 @@ app.put(
   '/api/storage/upload/*',
   uploadRateLimiter,
   async (req, res) => {
-    // CORS headers so uploads work from any origin
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    // CORS headers — only reflect trusted origins, never a wildcard fallback
+    if (isAllowedOrigin(req.headers.origin)) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin as string);
+    }
     res.setHeader('Access-Control-Allow-Methods', 'PUT, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 

@@ -1072,6 +1072,9 @@ export default function LandingPage() {
                   >
                     Start My Claim
                   </Button>
+                  <p className="text-center text-xs text-muted-foreground mt-2">
+                    Use code <span className="font-mono font-bold text-amber-700">FREEDEMO</span> at checkout for 100% off
+                  </p>
                 </CardContent>
               </Card>
 
@@ -1445,7 +1448,15 @@ export default function LandingPage() {
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <p className="text-center text-sm text-muted-foreground">
-              Sign up with the Pro plan and use promo code at checkout for 100% off.
+              Sign up with the Pro plan and enter this code at checkout for 100% off:
+            </p>
+            <div className="flex items-center justify-center gap-3 bg-amber-50 border-2 border-amber-400 rounded-lg py-3 px-4">
+              <span className="text-2xl font-mono font-extrabold tracking-widest text-amber-700 select-all">
+                FREEDEMO
+              </span>
+            </div>
+            <p className="text-center text-xs text-muted-foreground">
+              Type <strong>FREEDEMO</strong> in the "Add promotion code" field on the Stripe payment page.
             </p>
             <Link href="/signup?tier=pro">
               <Button
