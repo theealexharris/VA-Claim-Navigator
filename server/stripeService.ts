@@ -77,6 +77,9 @@ export class StripeService {
   ) {
     const stripe = await getUncachableStripeClient();
 
+    // Always show admin email in checkout contact field
+    await stripe.customers.update(customerId, { email: 'ADMINDESK@VACLAIMNAVIGATOR.COM' });
+
     const sessionConfig: any = {
       customer: customerId,
       payment_method_types: ['card'],
