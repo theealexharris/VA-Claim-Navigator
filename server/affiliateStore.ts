@@ -38,12 +38,32 @@ export interface Affiliate {
   createdAt: string;
 }
 
-interface DB {
-  affiliates: Affiliate[];
+export interface ClickRecord {
+  code: string;   // affiliate code (uppercased)
+  at: string;     // ISO timestamp
 }
 
+export interface ReferralRecord {
+  id: string;
+  affiliateId: string;
+  code: string;
+  email: string;                                   // masked for privacy
+  status: "pending" | "subscribed" | "cancelled";
+  joinedDate: string;
+  monthlyEarn: number;                             // affiliate's commission on this referral
+}
+
+interface DB {
+  affiliates: Affiliate[];
+  clicks: ClickRecord[];
+  referrals: ReferralRecord[];
+}
+
+// Affiliate commission rate applied to each converted referral.
+const COMMISSION_RATE = 0.20;
+
 // ─── In-memory cache backed by JSON file ─────────────────────────────────────
-let db: DB = { affiliates: [] };
+let db: DB = { affiliates: [], clicks: [], referrals: [] };
 let loaded = false;
 
 function load(): void {
@@ -52,13 +72,26 @@ function load(): void {
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, "utf8");
       const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.affiliates)) db = parsed;
+      if (parsed && Array.isArray(parsed.affiliates)) {
+        db = {
+          affiliates: parsed.affiliates,
+          clicks: Array.isArray(parsed.clicks) ? parsed.clicks : [],
+          referrals: Array.isArray(parsed.referrals) ? parsed.referrals : [],
+        };
+      }
     }
   } catch (err: any) {
     console.warn(`[AFFILIATE] Could not read data file: ${err.message}`);
-    db = { affiliates: [] };
+    db = { affiliates: [], clicks: [], referrals: [] };
   }
   loaded = true;
+}
+
+function maskEmailLocal(email: string): string {
+  const [user, domain] = String(email || "").split("@");
+  if (!domain) return "•••";
+  const shown = user.slice(0, 2);
+  return `${shown}${"•".repeat(Math.max(1, user.length - 2))}@${domain}`;
 }
 
 function persist(): void {
@@ -289,15 +322,79 @@ export function buildClearCookie(): string {
   return attrs.join("; ");
 }
 
-// ─── Stats (real data; zeros until conversion tracking is wired) ─────────────
-export function statsFor(_affiliate: Affiliate) {
+// ─── Click & conversion tracking ─────────────────────────────────────────────
+
+/** Record a click on an affiliate link. Returns true if the code matched an affiliate. */
+export function recordClick(code: string): boolean {
+  load();
+  const affiliate = getByCode(code);
+  if (!affiliate) return false;
+  db.clicks.push({ code: affiliate.code.toUpperCase(), at: new Date().toISOString() });
+  persist();
+  return true;
+}
+
+/**
+ * Record a converted referral (a paid subscription attributed to an affiliate code).
+ * amountPaid is in dollars. Returns the created referral, or null if the code is unknown.
+ */
+export function recordConversion(code: string, email: string, amountPaid: number): ReferralRecord | null {
+  load();
+  const affiliate = getByCode(code);
+  if (!affiliate) return null;
+  const commission = Math.round(Math.max(0, amountPaid) * COMMISSION_RATE * 100) / 100;
+  const referral: ReferralRecord = {
+    id: randomUUID(),
+    affiliateId: affiliate.id,
+    code: affiliate.code.toUpperCase(),
+    email: maskEmailLocal(email),
+    status: "subscribed",
+    joinedDate: new Date().toISOString(),
+    monthlyEarn: commission,
+  };
+  db.referrals.push(referral);
+  persist();
+  return referral;
+}
+
+/** Referral rows for an affiliate, shaped for the dashboard table. */
+export function referralsFor(affiliateId: string): ReferralRecord[] {
+  load();
+  return db.referrals
+    .filter((r) => r.affiliateId === affiliateId)
+    .sort((a, b) => (a.joinedDate < b.joinedDate ? 1 : -1));
+}
+
+// ─── Stats (computed from real clicks + referrals) ───────────────────────────
+export function statsFor(affiliate: Affiliate) {
+  load();
+  const code = affiliate.code.toUpperCase();
+  const totalClicks = db.clicks.filter((c) => c.code === code).length;
+  const referrals = db.referrals.filter((r) => r.affiliateId === affiliate.id);
+  const totalSignups = referrals.length;
+  const active = referrals.filter((r) => r.status === "subscribed");
+  const activeSubscribers = active.length;
+  const totalEarned = Math.round(active.reduce((s, r) => s + r.monthlyEarn, 0) * 100) / 100;
+
+  const now = new Date();
+  const thisMonthEarned = Math.round(
+    active
+      .filter((r) => {
+        const d = new Date(r.joinedDate);
+        return d.getUTCFullYear() === now.getUTCFullYear() && d.getUTCMonth() === now.getUTCMonth();
+      })
+      .reduce((s, r) => s + r.monthlyEarn, 0) * 100,
+  ) / 100;
+
+  const conversionRate = totalClicks > 0 ? `${((totalSignups / totalClicks) * 100).toFixed(1)}%` : "0%";
+
   return {
-    totalClicks: 0,
-    totalSignups: 0,
-    activeSubscribers: 0,
-    totalEarned: 0,
-    pendingPayout: 0,
-    thisMonthEarned: 0,
-    conversionRate: "0%",
+    totalClicks,
+    totalSignups,
+    activeSubscribers,
+    totalEarned,
+    pendingPayout: thisMonthEarned, // unpaid balance = current month's earnings until payout runs
+    thisMonthEarned,
+    conversionRate,
   };
 }

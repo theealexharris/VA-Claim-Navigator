@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -34,6 +35,31 @@ import AffiliatePage from "@/pages/AffiliatePage";
 import AffiliateLogin from "@/pages/AffiliateLogin";
 import AffiliateDashboard from "@/pages/AffiliateDashboard";
 
+// Capture an affiliate referral (?ref=CODE) once per page load. The server
+// records the click and drops a 30-day attribution cookie so a later purchase
+// is credited to the referring affiliate.
+function useAffiliateReferralCapture() {
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref");
+      if (!ref) return;
+      // Avoid re-posting the same ref repeatedly within a session.
+      const key = `aff_ref_tracked_${ref}`;
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+      fetch("/api/affiliates/track", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ref }),
+      }).catch(() => {});
+    } catch {
+      /* no-op */
+    }
+  }, []);
+}
+
 function Router() {
   return (
     <Switch>
@@ -49,7 +75,7 @@ function Router() {
       <Route path="/affiliates" component={AffiliatePage} />
       <Route path="/affiliate/login" component={AffiliateLogin} />
       <Route path="/affiliate/dashboard" component={AffiliateDashboard} />
-      
+
       {/* Dashboard Routes - Protected */}
       <Route path="/dashboard">
         <ProtectedRoute>
@@ -116,32 +142,32 @@ function Router() {
           <Settings />
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/dashboard/referrals">
         <ProtectedRoute>
           <ReferralProgram />
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/dashboard/funnel-contacts">
         <ProtectedRoute>
           <FunnelContacts />
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/dashboard/notifications">
         <ProtectedRoute>
           <Notifications />
         </ProtectedRoute>
       </Route>
-      
+
       {/* Admin Route */}
       <Route path="/admin">
         <ProtectedRoute>
           <Admin />
         </ProtectedRoute>
       </Route>
-      
+
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
@@ -149,6 +175,7 @@ function Router() {
 }
 
 function App() {
+  useAffiliateReferralCapture();
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

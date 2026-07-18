@@ -1888,13 +1888,20 @@ export async function registerRoutes(
       const successUrl = addonType
         ? `${req.protocol}://${req.get('host')}${successPath}?payment=success&tier=${tier}&addon_type=${addonType}`
         : `${req.protocol}://${req.get('host')}${successPath}?payment=success&tier=${tier}`;
+      // Attribute the purchase to an affiliate if the visitor carries a ref cookie.
+      const affiliateRef = affiliateStore.parseCookie(req.headers.cookie, "aff_ref");
       const checkoutSession = await stripeService.createCheckoutSession(
         customerId!,
         priceId,
         successUrl,
         `${req.protocol}://${req.get('host')}${cancelPath}?payment=cancelled`,
         undefined,
-        { userId: user.id, tier, ...(addonType ? { addon_type: addonType } : {}) }
+        {
+          userId: user.id,
+          tier,
+          ...(addonType ? { addon_type: addonType } : {}),
+          ...(affiliateRef ? { affiliate_ref: affiliateRef } : {}),
+        }
       );
 
       res.json({ url: checkoutSession.url });
@@ -2099,9 +2106,31 @@ export async function registerRoutes(
     return res.json(affiliateStore.statsFor(req.affiliate));
   });
 
-  // Authenticated: referral list (empty until conversion tracking records referrals)
-  app.get("/api/affiliates/referrals", requireAffiliate, (_req, res) => {
-    return res.json([]);
+  // Public: record an affiliate link click and drop a 30-day attribution cookie.
+  // Called by the app when a visitor lands with ?ref=CODE.
+  app.post("/api/affiliates/track", affiliateLimiter, (req, res) => {
+    const code = String((req.body && req.body.ref) || req.query.ref || "").trim();
+    if (!code) return res.status(400).json({ message: "ref is required." });
+    const matched = affiliateStore.recordClick(code);
+    if (matched) {
+      const isProd = process.env.NODE_ENV === "production";
+      const maxAge = 30 * 24 * 60 * 60; // 30 days
+      const attrs = [
+        `aff_ref=${encodeURIComponent(code.toUpperCase())}`,
+        "Path=/",
+        "SameSite=Lax",
+        `Max-Age=${maxAge}`,
+      ];
+      if (isProd) attrs.push("Secure");
+      res.setHeader("Set-Cookie", attrs.join("; "));
+    }
+    // Always 200 so we never reveal whether a code exists.
+    return res.json({ ok: true, tracked: matched });
+  });
+
+  // Authenticated: referral list (real conversions attributed to this affiliate)
+  app.get("/api/affiliates/referrals", requireAffiliate, (req: any, res) => {
+    return res.json(affiliateStore.referralsFor(req.affiliate.id));
   });
 
   // Authenticated: marketing assets (managed by admin; empty until assets are added)

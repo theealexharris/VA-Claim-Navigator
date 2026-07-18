@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { getUncachableStripeClient } from './stripeClient';
 import { InsforgeStorageService } from './insforge-storage-service';
+import * as affiliateStore from './affiliateStore';
 
 const storage = new InsforgeStorageService();
 
@@ -62,6 +63,24 @@ export class WebhookHandlers {
             }
           } catch (e: any) {
             console.error('[STRIPE WEBHOOK] Failed to update user:', e.message);
+          }
+        }
+
+        // Affiliate attribution: if the checkout carried an affiliate_ref, credit
+        // the referring affiliate with their commission on the amount paid.
+        const affiliateRef = session.metadata?.affiliate_ref;
+        if (affiliateRef && addonType !== 'supplemental_statement') {
+          try {
+            const amountPaid = (session.amount_total ?? 0) / 100; // cents → dollars
+            const email = session.customer_details?.email || session.customer_email || 'referral';
+            const referral = affiliateStore.recordConversion(affiliateRef, email, amountPaid);
+            if (referral) {
+              console.log(`[AFFILIATE] Conversion for code ${affiliateRef}: $${referral.monthlyEarn.toFixed(2)} commission`);
+            } else {
+              console.log(`[AFFILIATE] Conversion carried unknown code ${affiliateRef} — skipped`);
+            }
+          } catch (e: any) {
+            console.error('[AFFILIATE] Failed to record conversion:', e.message);
           }
         }
         break;
