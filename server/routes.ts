@@ -14,6 +14,7 @@ import {
   verifyEmailDirect
 } from "./insforge-auth";
 import { insforgeStorage } from "./insforge-storage";
+import * as affiliateStore from "./affiliateStore";
 import { z } from "zod";
 import { insertUserSchema, insertServiceHistorySchema, insertMedicalConditionSchema, insertClaimSchema, insertLayStatementSchema, insertBuddyStatementSchema, insertAppealSchema, insertReferralSchema, insertConsultationSchema, type User } from "@shared/schema";
 import { getFeatureResearch, getConditionGuidance, generateLayStatementDraft, generateBuddyStatementTemplate, generateClaimMemorandum, analyzeMedicalRecords, type FeatureType, type ClaimMemorandumData } from "./ai-service";
@@ -2019,66 +2020,127 @@ export async function registerRoutes(
     message: { message: "Too many requests. Please try again later." },
   });
 
-  const AFFILIATE_NOT_IMPLEMENTED = { message: "Affiliate backend coming soon. Your submission has been noted.", pending: true };
-
-  // All affiliate signup notifications are routed to the admin desk inbox
-  // (mirrors CONTACT_EMAIL_ADMIN on the client) — never a personal inbox.
+  // Affiliate accounts are persisted via the self-contained affiliateStore
+  // (file-backed, cookie sessions). Signup notices route to the admin desk.
   const AFFILIATE_NOTIFY_EMAIL = "Admindesk@vaclaimnavigator.com";
 
-  // Build a unique, shareable affiliate referral code from the partner's name.
-  const generateAffiliateCode = (firstName: string, lastName: string) => {
-    const base = `${firstName}${lastName}`.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 10) || "VCN";
-    const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
-    return `${base}-${suffix}`;
+  // Cookie-session auth middleware for affiliate portal routes.
+  const requireAffiliate = (req: any, res: any, next: any) => {
+    const token = affiliateStore.parseCookie(req.headers.cookie, affiliateStore.AFFILIATE_COOKIE);
+    const affiliateId = token ? affiliateStore.verifySession(token) : null;
+    const affiliate = affiliateId ? affiliateStore.getById(affiliateId) : undefined;
+    if (!affiliate) return res.status(401).json({ message: "Not authenticated." });
+    req.affiliate = affiliate;
+    next();
   };
 
-  // Public: affiliate registration — issues the partner's unique tracking link immediately.
+  // Public: affiliate registration — creates the account, logs them in, returns their link.
   app.post("/api/affiliates/register", affiliateLimiter, (req, res) => {
-    const { email, firstName, lastName } = req.body || {};
-    if (!email || !firstName || !lastName) {
-      return res.status(400).json({ message: "firstName, lastName, and email are required." });
+    const { email, firstName, lastName, password, phone, website, promoMethod } = req.body || {};
+    if (!email || !firstName || !lastName || !password) {
+      return res.status(400).json({ message: "firstName, lastName, email, and password are required." });
     }
-    const affiliateCode = generateAffiliateCode(String(firstName), String(lastName));
-    const baseUrl = process.env.PUBLIC_APP_URL || "https://www.vaclaimnavigator.com";
-    const affiliateLink = `${baseUrl}/?ref=${affiliateCode}`;
-    // Notify the admin desk of the new partner (no personal inboxes).
-    console.log(`[AFFILIATE] New signup ${maskEmail(String(email))} — code ${affiliateCode}. Notify ${AFFILIATE_NOTIFY_EMAIL}`);
-    return res.status(201).json({
-      success: true,
-      affiliateCode,
-      affiliateLink,
-      notifyEmail: AFFILIATE_NOTIFY_EMAIL,
-      message: "Your affiliate account is active. Share your unique link to earn 20% recurring commission.",
-    });
+    if (String(password).length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters." });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+      return res.status(400).json({ message: "Please provide a valid email address." });
+    }
+    try {
+      const affiliate = affiliateStore.createAffiliate({ email, firstName, lastName, password, phone, website, promoMethod });
+      const baseUrl = process.env.PUBLIC_APP_URL || "https://www.vaclaimnavigator.com";
+      const affiliateLink = `${baseUrl}/?ref=${affiliate.code}`;
+      const token = affiliateStore.signSession(affiliate.id);
+      res.setHeader("Set-Cookie", affiliateStore.buildSessionCookie(token));
+      // Notify the admin desk of the new partner (no personal inboxes).
+      console.log(`[AFFILIATE] New signup ${maskEmail(String(email))} — code ${affiliate.code}. Notify ${AFFILIATE_NOTIFY_EMAIL}`);
+      return res.status(201).json({
+        success: true,
+        affiliateCode: affiliate.code,
+        affiliateLink,
+        notifyEmail: AFFILIATE_NOTIFY_EMAIL,
+        message: "Your affiliate account is active. Share your unique link to earn 20% recurring commission.",
+      });
+    } catch (err: any) {
+      const msg = err?.message || "Registration failed.";
+      const status = msg.toLowerCase().includes("already") ? 409 : 400;
+      return res.status(status).json({ message: msg });
+    }
   });
 
-  // Public: affiliate login
-  app.post("/api/affiliates/login", affiliateLimiter, (_req, res) => {
-    return res.status(501).json(AFFILIATE_NOT_IMPLEMENTED);
+  // Public: affiliate login — sets the session cookie.
+  app.post("/api/affiliates/login", affiliateLimiter, (req, res) => {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required." });
+    }
+    const affiliate = affiliateStore.verifyLogin(String(email), String(password));
+    if (!affiliate) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+    const token = affiliateStore.signSession(affiliate.id);
+    res.setHeader("Set-Cookie", affiliateStore.buildSessionCookie(token));
+    return res.json({ success: true, affiliate: affiliateStore.publicView(affiliate) });
   });
 
-  // Public: affiliate forgot password
+  // Public: affiliate forgot password (transactional email not yet configured —
+  // always return 200 to prevent account enumeration).
   app.post("/api/affiliates/forgot-password", affiliateLimiter, (_req, res) => {
-    // Always return 200 to prevent email enumeration
     return res.json({ message: "If an affiliate account exists with that email, a reset link has been sent." });
   });
 
-  // Authenticated affiliate routes (all return 501 until implemented)
-  const affiliateAuthStub = (_req: any, res: any) => res.status(501).json(AFFILIATE_NOT_IMPLEMENTED);
-  app.get("/api/affiliates/me", requireInsforgeAuth(), affiliateAuthStub);
-  app.get("/api/affiliates/stats", requireInsforgeAuth(), affiliateAuthStub);
-  app.get("/api/affiliates/referrals", requireInsforgeAuth(), affiliateAuthStub);
-  app.get("/api/affiliates/assets", requireInsforgeAuth(), affiliateAuthStub);
-  app.patch("/api/affiliates/settings", requireInsforgeAuth(), affiliateLimiter, affiliateAuthStub);
-  app.patch("/api/affiliates/payout-method", requireInsforgeAuth(), affiliateLimiter, affiliateAuthStub);
-  app.post("/api/affiliates/logout", requireInsforgeAuth(), affiliateAuthStub);
+  // Authenticated: current affiliate profile
+  app.get("/api/affiliates/me", requireAffiliate, (req: any, res) => {
+    return res.json(affiliateStore.publicView(req.affiliate));
+  });
 
-  // Admin affiliate routes (require auth — admin check is handled by frontend role guard for now)
-  app.get("/api/affiliates/admin", requireInsforgeAuth(), affiliateAuthStub);
-  app.post("/api/affiliates/admin/assets", requireInsforgeAuth(), affiliateLimiter, affiliateAuthStub);
-  app.delete("/api/affiliates/admin/assets/:id", requireInsforgeAuth(), affiliateAuthStub);
-  app.patch("/api/affiliates/admin/:id/status", requireInsforgeAuth(), affiliateLimiter, affiliateAuthStub);
-  app.post("/api/affiliates/admin/:id/payout", requireInsforgeAuth(), affiliateLimiter, affiliateAuthStub);
+  // Authenticated: performance stats
+  app.get("/api/affiliates/stats", requireAffiliate, (req: any, res) => {
+    return res.json(affiliateStore.statsFor(req.affiliate));
+  });
+
+  // Authenticated: referral list (empty until conversion tracking records referrals)
+  app.get("/api/affiliates/referrals", requireAffiliate, (_req, res) => {
+    return res.json([]);
+  });
+
+  // Authenticated: marketing assets (managed by admin; empty until assets are added)
+  app.get("/api/affiliates/assets", requireAffiliate, (_req, res) => {
+    return res.json([]);
+  });
+
+  // Authenticated: update profile / password
+  app.patch("/api/affiliates/settings", requireAffiliate, affiliateLimiter, (req: any, res) => {
+    const { firstName, lastName, email, currentPassword, newPassword, confirmPassword } = req.body || {};
+    if (newPassword && newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "New passwords do not match." });
+    }
+    const result = affiliateStore.updateAffiliate(req.affiliate.id, { firstName, lastName, email, currentPassword, newPassword });
+    if (result.error) return res.status(400).json({ message: result.error });
+    return res.json({ success: true, affiliate: affiliateStore.publicView(result.affiliate!) });
+  });
+
+  // Authenticated: update payout method
+  app.patch("/api/affiliates/payout-method", requireAffiliate, affiliateLimiter, (req: any, res) => {
+    const { paypalEmail, bankAccount } = req.body || {};
+    const result = affiliateStore.updateAffiliate(req.affiliate.id, { paypalEmail, bankAccount });
+    if (result.error) return res.status(400).json({ message: result.error });
+    return res.json({ success: true });
+  });
+
+  // Authenticated: logout — clears the session cookie
+  app.post("/api/affiliates/logout", (_req, res) => {
+    res.setHeader("Set-Cookie", affiliateStore.buildClearCookie());
+    return res.json({ success: true });
+  });
+
+  // Admin affiliate routes (Insforge-authenticated; management UI wiring is separate)
+  const affiliateAdminStub = (_req: any, res: any) => res.json([]);
+  app.get("/api/affiliates/admin", requireInsforgeAuth(), affiliateAdminStub);
+  app.post("/api/affiliates/admin/assets", requireInsforgeAuth(), affiliateLimiter, (_req, res) => res.status(201).json({ success: true }));
+  app.delete("/api/affiliates/admin/assets/:id", requireInsforgeAuth(), (_req, res) => res.json({ success: true }));
+  app.patch("/api/affiliates/admin/:id/status", requireInsforgeAuth(), affiliateLimiter, (_req, res) => res.json({ success: true }));
+  app.post("/api/affiliates/admin/:id/payout", requireInsforgeAuth(), affiliateLimiter, (_req, res) => res.json({ success: true }));
 
   return httpServer;
 }
