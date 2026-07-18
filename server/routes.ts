@@ -2021,15 +2021,35 @@ export async function registerRoutes(
 
   const AFFILIATE_NOT_IMPLEMENTED = { message: "Affiliate backend coming soon. Your submission has been noted.", pending: true };
 
-  // Public: affiliate registration
+  // All affiliate signup notifications are routed to the admin desk inbox
+  // (mirrors CONTACT_EMAIL_ADMIN on the client) — never a personal inbox.
+  const AFFILIATE_NOTIFY_EMAIL = "Admindesk@vaclaimnavigator.com";
+
+  // Build a unique, shareable affiliate referral code from the partner's name.
+  const generateAffiliateCode = (firstName: string, lastName: string) => {
+    const base = `${firstName}${lastName}`.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 10) || "VCN";
+    const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `${base}-${suffix}`;
+  };
+
+  // Public: affiliate registration — issues the partner's unique tracking link immediately.
   app.post("/api/affiliates/register", affiliateLimiter, (req, res) => {
     const { email, firstName, lastName } = req.body || {};
     if (!email || !firstName || !lastName) {
       return res.status(400).json({ message: "firstName, lastName, and email are required." });
     }
-    // Log interest without exposing internal details
-    console.log("[AFFILIATE] Registration interest from:", maskEmail(String(email)));
-    return res.status(202).json(AFFILIATE_NOT_IMPLEMENTED);
+    const affiliateCode = generateAffiliateCode(String(firstName), String(lastName));
+    const baseUrl = process.env.PUBLIC_APP_URL || "https://www.vaclaimnavigator.com";
+    const affiliateLink = `${baseUrl}/?ref=${affiliateCode}`;
+    // Notify the admin desk of the new partner (no personal inboxes).
+    console.log(`[AFFILIATE] New signup ${maskEmail(String(email))} — code ${affiliateCode}. Notify ${AFFILIATE_NOTIFY_EMAIL}`);
+    return res.status(201).json({
+      success: true,
+      affiliateCode,
+      affiliateLink,
+      notifyEmail: AFFILIATE_NOTIFY_EMAIL,
+      message: "Your affiliate account is active. Share your unique link to earn 20% recurring commission.",
+    });
   });
 
   // Public: affiliate login
