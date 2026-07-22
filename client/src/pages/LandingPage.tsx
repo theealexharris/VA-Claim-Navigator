@@ -1082,44 +1082,6 @@ export default function LandingPage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
-            SECTION 11 — WHAT VETERANS CAN EXPECT (Proof Architecture)
-            TODO: Replace these placeholder cards with:
-              • Real testimonials from veterans
-              • Redacted screenshots of actual statement drafts
-              • Video proof / screen recordings
-              • Funnel conversion metrics
-              • Partner or credibility logos if available
-        ════════════════════════════════════════════════════════════════ */}
-        <section className="py-10 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto mb-14">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
-                What veterans can expect
-              </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                A clearer process, a tangible output, and the transparency to make a confident
-                decision.
-              </p>
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-3 max-w-5xl mx-auto">
-              {proofCards.map(({ title, body }) => (
-                <div
-                  key={title}
-                  className="rounded-xl border border-border bg-white p-7 shadow-sm"
-                >
-                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/5">
-                    <CheckCircle2 className="h-6 w-6 text-primary" />
-                  </div>
-                  <h4 className="text-lg font-bold text-primary font-serif mb-3">{title}</h4>
-                  <p className="text-muted-foreground leading-relaxed">{body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════════
             SECTION 12 — FAQ
         ════════════════════════════════════════════════════════════════ */}
         <section id="faq" className="py-10 bg-muted/30">
