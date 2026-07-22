@@ -562,12 +562,16 @@ export default function LandingPage() {
                           <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Legal Basis:</p>
                           <hr className="border-gray-300" />
                           <p>38 CFR § 4.71a; Shedden v. Principi.</p>
-                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Conclusion:</p>
+                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Legal Argument:</p>
+                          <hr className="border-gray-300" />
+                          <p>Condition is directly service-connected with continuity of symptoms.</p>
+                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Conclusion / Rationale:</p>
                           <hr className="border-gray-300" />
                           <p>Evidence supports service connection and appropriate rating.</p>
                           <div className="mt-2.5 pt-1.5 border-t border-gray-200">
                             <p className="italic">Respectfully Submitted,</p>
                             <p className="font-semibold">Veteran AI Test</p>
+                            <p className="font-bold tracking-widest text-gray-700 mt-1">SAMPLE ONLY</p>
                           </div>
                         </div>
                       </div>
