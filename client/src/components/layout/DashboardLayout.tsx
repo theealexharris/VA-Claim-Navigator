@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Bot, 
-  Settings, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  FileText,
+  Bot,
+  Settings,
+  LogOut,
   Menu,
   Bell,
   User,
@@ -17,7 +17,8 @@ import {
   Users,
   Mail,
   Lock,
-  MessageSquare
+  MessageSquare,
+  CalendarDays
 } from "lucide-react";
 import { ContactUsDialog } from "@/components/ContactUsDialog";
 import { CONTACT_EMAIL_ADMIN, FEEDBACK_EMAIL } from "@/lib/contact";
@@ -25,13 +26,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
@@ -40,7 +41,7 @@ export function getWorkflowProgress() {
   const profileComplete = localStorage.getItem("personalInfoComplete") === "true";
   const serviceHistoryComplete = localStorage.getItem("serviceHistoryComplete") === "true";
   const medicalConditionsComplete = localStorage.getItem("medicalConditionsComplete") === "true";
-  
+
   return {
     profileComplete,
     serviceHistoryComplete,
@@ -59,7 +60,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string>("user");
   const [workflowProgress, setWorkflowProgress] = useState(getWorkflowProgress());
   const [showSessionWarning, setShowSessionWarning] = useState(false);
-  
+
   const [isProfileOpen, setIsProfileOpen] = useState(location.includes('profile') || location.includes('history'));
   const isAdmin = userRole === "admin";
 
@@ -98,28 +99,28 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     const savedProfile = localStorage.getItem("userProfile");
     if (savedProfile) {
       const profile = JSON.parse(savedProfile);
-      setUserName({ 
-        firstName: capitalizeFirstLetter(profile.firstName || ""), 
-        lastName: capitalizeFirstLetter(profile.lastName || "") 
+      setUserName({
+        firstName: capitalizeFirstLetter(profile.firstName || ""),
+        lastName: capitalizeFirstLetter(profile.lastName || "")
       });
       setUserRole(profile.role || "user");
     }
-    
+
     refreshWorkflowProgress();
-    
+
     const handleStorageChange = () => {
       const updatedProfile = localStorage.getItem("userProfile");
       if (updatedProfile) {
         const profile = JSON.parse(updatedProfile);
-        setUserName({ 
-          firstName: capitalizeFirstLetter(profile.firstName || ""), 
-          lastName: capitalizeFirstLetter(profile.lastName || "") 
+        setUserName({
+          firstName: capitalizeFirstLetter(profile.firstName || ""),
+          lastName: capitalizeFirstLetter(profile.lastName || "")
         });
         setUserRole(profile.role || "user");
       }
       refreshWorkflowProgress();
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('workflowProgressUpdate', refreshWorkflowProgress);
     return () => {
@@ -134,10 +135,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <img src="/favicon.png" alt="VA Claim Navigator" className="h-8 w-8 object-contain shrink-0" />
         <span className="font-serif font-bold text-lg text-white">Claim Navigator<sup className="text-xs align-super">™</sup></span>
       </div>
-      
+
       <div className="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
         <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" isActive={location === "/dashboard"} />
-        
+
         {/* Profile Section */}
         <Collapsible open={isProfileOpen} onOpenChange={setIsProfileOpen} className="space-y-1">
           <CollapsibleTrigger className="flex items-center w-full px-3 py-2.5 text-sidebar-foreground/70 hover:text-white hover:bg-sidebar-accent rounded-md group">
@@ -147,19 +148,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </CollapsibleTrigger>
           <CollapsibleContent className="pl-9 space-y-1">
             <NavItem href="/dashboard/profile" label="1. Personal Info" isActive={location === "/dashboard/profile"} isSubItem />
-            <NavItem 
-              href="/dashboard/service-history" 
-              label="2. Service History" 
-              isActive={location === "/dashboard/service-history"} 
-              isSubItem 
+            <NavItem
+              href="/dashboard/service-history"
+              label="2. Service History"
+              isActive={location === "/dashboard/service-history"}
+              isSubItem
               isLocked={!workflowProgress.canAccessServiceHistory}
               lockedMessage="Complete Personal Info first"
             />
-            <NavItem 
-              href="/dashboard/medical-history" 
-              label="3. Medical Conditions" 
-              isActive={location === "/dashboard/medical-history"} 
-              isSubItem 
+            <NavItem
+              href="/dashboard/medical-history"
+              label="3. Medical Conditions"
+              isActive={location === "/dashboard/medical-history"}
+              isSubItem
               isLocked={!workflowProgress.canAccessMedicalConditions}
               lockedMessage="Complete Service History first"
             />
@@ -171,19 +172,22 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           Claim Tools
         </div>
 
-        <NavItem 
-          href="/dashboard/claim-builder" 
-          icon={FileText} 
-          label="4. Claim Builder" 
-          isActive={location === "/dashboard/claim-builder"} 
+        <NavItem
+          href="/dashboard/claim-builder"
+          icon={FileText}
+          label="4. Claim Builder"
+          isActive={location === "/dashboard/claim-builder"}
           isLocked={!workflowProgress.canAccessClaimBuilder}
           lockedMessage="Complete Medical Conditions first"
         />
-        
+
+        {/* Booking calendar for the Onboarding Consulting Call */}
+        <NavItem href="/dashboard/calendar" icon={CalendarDays} label="Calendar" isActive={location === "/dashboard/calendar"} />
+
         <div className="pt-4 pb-2 px-3 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
           Support
         </div>
-        
+
         <NavItem href="/dashboard/coach" icon={Bot} label="Warrior Coach AI" isActive={location === "/dashboard/coach"} />
         <NavItem href="/dashboard/education" icon={BookOpen} label="Education Library" isActive={location === "/dashboard/education"} />
         <NavItem href="/dashboard/referrals" icon={Gift} label="Refer a Veteran" isActive={location === "/dashboard/referrals"} />
@@ -195,7 +199,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className="pt-4 pb-2 px-3 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
           Contact
         </div>
-        <ContactUsDialog 
+        <ContactUsDialog
           trigger={
             <button className="flex items-center w-full px-3 py-2.5 text-sidebar-foreground/70 hover:text-white hover:bg-sidebar-accent rounded-md group">
               <Mail className="h-5 w-5 mr-3 group-hover:text-white" />
@@ -278,7 +282,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-4">
             <NotificationDropdown />
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -292,8 +296,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {userName.firstName && userName.lastName 
-                        ? `${userName.firstName} ${userName.lastName}` 
+                      {userName.firstName && userName.lastName
+                        ? `${userName.firstName} ${userName.lastName}`
                         : "Veteran User"}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
@@ -339,18 +343,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function NavItem({ href, icon: Icon, label, isActive, isSubItem, isLocked, lockedMessage }: { 
-  href: string, 
-  icon?: any, 
-  label: string, 
-  isActive: boolean, 
+function NavItem({ href, icon: Icon, label, isActive, isSubItem, isLocked, lockedMessage }: {
+  href: string,
+  icon?: any,
+  label: string,
+  isActive: boolean,
   isSubItem?: boolean,
   isLocked?: boolean,
   lockedMessage?: string
 }) {
   if (isLocked) {
     return (
-      <div 
+      <div
         className={`
           flex items-center gap-3 px-3 py-2.5 rounded-md cursor-not-allowed opacity-50
           text-sidebar-foreground/50
@@ -368,8 +372,8 @@ function NavItem({ href, icon: Icon, label, isActive, isSubItem, isLocked, locke
   return (
     <Link href={href} className={`
       flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 group
-      ${isActive 
-        ? "bg-sidebar-primary/10 text-sidebar-primary font-medium" 
+      ${isActive
+        ? "bg-sidebar-primary/10 text-sidebar-primary font-medium"
         : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-white"}
       ${isSubItem ? "text-sm" : ""}
     `}>

@@ -15,6 +15,7 @@ import {
 } from "./insforge-auth";
 import { insforgeStorage } from "./insforge-storage";
 import * as affiliateStore from "./affiliateStore";
+import { sendMail } from "./mailer";
 import { z } from "zod";
 import { insertUserSchema, insertServiceHistorySchema, insertMedicalConditionSchema, insertClaimSchema, insertLayStatementSchema, insertBuddyStatementSchema, insertAppealSchema, insertReferralSchema, insertConsultationSchema, type User } from "@shared/schema";
 import { getFeatureResearch, getConditionGuidance, generateLayStatementDraft, generateBuddyStatementTemplate, generateClaimMemorandum, analyzeMedicalRecords, type FeatureType, type ClaimMemorandumData } from "./ai-service";
@@ -2170,6 +2171,110 @@ export async function registerRoutes(
   app.delete("/api/affiliates/admin/assets/:id", requireInsforgeAuth(), (_req, res) => res.json({ success: true }));
   app.patch("/api/affiliates/admin/:id/status", requireInsforgeAuth(), affiliateLimiter, (_req, res) => res.json({ success: true }));
   app.post("/api/affiliates/admin/:id/payout", requireInsforgeAuth(), affiliateLimiter, (_req, res) => res.json({ success: true }));
+
+  // ─── Onboarding Consulting Call — booking ───────────────────────────────────
+  // Accepts a booking, emails a confirmation to the veteran and a notification
+  // (with all form details) to the admin desk. SMTP is configured via env vars
+  // (see server/mailer.ts). Rate-limited to prevent abuse.
+  const BOOKING_NOTIFY_EMAIL = "admindesk@vaclaimnavigator.com";
+  const bookingLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many booking requests. Please try again shortly." },
+  });
+
+  app.post("/api/consultations/book", bookingLimiter, async (req, res) => {
+    const { fullName, email, phone, subject, date, time } = req.body || {};
+
+    // Validate required fields.
+    if (!fullName || !email || !phone || !subject || !date || !time) {
+      return res.status(400).json({
+        message: "Full name, email, phone, subject, date, and time are all required.",
+      });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+      return res.status(400).json({ message: "Please provide a valid email address." });
+    }
+
+    // Escape user input before embedding in HTML emails.
+    const esc = (s: string) =>
+      String(s).replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string),
+      );
+
+    const safe = {
+      fullName: esc(fullName),
+      email: esc(email),
+      phone: esc(phone),
+      subject: esc(subject),
+      date: esc(date),
+      time: esc(time),
+    };
+
+    // 1) Confirmation email to the veteran who booked.
+    const userHtml = `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1f2937">
+        <h2 style="color:#1e3a5f">Your Onboarding Consulting Call is booked</h2>
+        <p>Hi ${safe.fullName},</p>
+        <p>Thank you for booking an Onboarding Consulting Call with VA Claim Navigator. Here are your details:</p>
+        <table style="border-collapse:collapse;width:100%;margin:16px 0">
+          <tr><td style="padding:6px 0;font-weight:bold">Date:</td><td>${safe.date}</td></tr>
+          <tr><td style="padding:6px 0;font-weight:bold">Time:</td><td>${safe.time}</td></tr>
+          <tr><td style="padding:6px 0;font-weight:bold">Subject:</td><td>${safe.subject}</td></tr>
+        </table>
+        <p><strong>One of our staff members will be in touch with you within one business day.</strong></p>
+        <p style="color:#6b7280;font-size:12px">VA Claim Navigator is an independent private platform and is not affiliated with the U.S. Department of Veterans Affairs.</p>
+      </div>`;
+
+    // 2) Notification email to the admin desk with all form details.
+    const adminHtml = `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1f2937">
+        <h2 style="color:#1e3a5f">New Onboarding Consulting Call booking</h2>
+        <table style="border-collapse:collapse;width:100%;margin:16px 0">
+          <tr><td style="padding:6px 0;font-weight:bold">Full Name:</td><td>${safe.fullName}</td></tr>
+          <tr><td style="padding:6px 0;font-weight:bold">Email:</td><td>${safe.email}</td></tr>
+          <tr><td style="padding:6px 0;font-weight:bold">Phone:</td><td>${safe.phone}</td></tr>
+          <tr><td style="padding:6px 0;font-weight:bold">Subject/Issue:</td><td>${safe.subject}</td></tr>
+          <tr><td style="padding:6px 0;font-weight:bold">Requested Date:</td><td>${safe.date}</td></tr>
+          <tr><td style="padding:6px 0;font-weight:bold">Requested Time:</td><td>${safe.time}</td></tr>
+        </table>
+      </div>`;
+
+    try {
+      const [userResult, adminResult] = await Promise.all([
+        sendMail({
+          to: String(email),
+          subject: "Your Onboarding Consulting Call is booked — VA Claim Navigator",
+          html: userHtml,
+          text: `Hi ${fullName}, your Onboarding Consulting Call is booked for ${date} at ${time}. One of our staff members will be in touch with you within one business day.`,
+        }),
+        sendMail({
+          to: BOOKING_NOTIFY_EMAIL,
+          replyTo: String(email),
+          subject: `New booking: ${String(subject)} — ${String(fullName)}`,
+          html: adminHtml,
+          text: `New Onboarding Consulting Call booking\nName: ${fullName}\nEmail: ${email}\nPhone: ${phone}\nSubject: ${subject}\nDate: ${date}\nTime: ${time}`,
+        }),
+      ]);
+
+      console.log(
+        `[BOOKING] ${maskEmail(String(email))} — ${date} ${time} | user email ${userResult.ok ? "sent" : "skipped"}, admin email ${adminResult.ok ? "sent" : "skipped"}`,
+      );
+
+      // Success even if SMTP is unconfigured, so the UX popup still shows and the
+      // booking is logged; emailed reflects whether mail actually went out.
+      return res.status(201).json({
+        success: true,
+        emailed: userResult.ok && adminResult.ok,
+        message: "One of our staff members will be in touch with you within one business day.",
+      });
+    } catch (err: any) {
+      console.error("[BOOKING] Failed:", err?.message || err);
+      return res.status(500).json({ message: "Could not process your booking. Please try again." });
+    }
+  });
 
   return httpServer;
 }
