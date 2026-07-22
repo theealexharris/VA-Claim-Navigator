@@ -386,7 +386,7 @@ export default function LandingPage() {
             SECTION 1 — HERO
             Clarity-first: what it is, who it's for, what you get, what to do next
         ════════════════════════════════════════════════════════════════ */}
-        <section id="output-preview" className="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden">
+        <section id="output-preview" className="relative pt-8 pb-10 lg:pt-12 lg:pb-14 overflow-hidden">
           {/* Subtle gradient bg */}
           <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-secondary/[0.05]" />
 
@@ -631,7 +631,7 @@ export default function LandingPage() {
             SECTION 8 — WHAT MAKES US DIFFERENT (Objection Handling)
             Addresses skepticism naturally before it becomes abandonment
         ════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-muted/30">
+        <section className="py-10 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-14">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
@@ -661,7 +661,7 @@ export default function LandingPage() {
             SECTIONS 3 & 4 — SOLUTION + HOW IT WORKS (side by side)
             (ids kept so existing Navbar links still work)
         ════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-white">
+        <section className="py-10 bg-white">
           <div className="container mx-auto px-4">
             <div className="grid gap-12 lg:grid-cols-2 max-w-7xl mx-auto items-start">
 
@@ -758,7 +758,7 @@ export default function LandingPage() {
               4) 5s — user review reminder
               5) 5s — call to action
         ════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-muted/30">
+        <section className="py-10 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-10">
@@ -820,7 +820,7 @@ export default function LandingPage() {
         </section>
 
         {/* Pricing */}
-        <section id="pricing" className="py-20 bg-white">
+        <section id="pricing" className="py-10 bg-white">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-14">
               <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
@@ -1031,7 +1031,7 @@ export default function LandingPage() {
         {/* ════════════════════════════════════════════════════════════════
             SECTION 10 — TRUST / FOUNDER
         ════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-muted/30">
+        <section className="py-10 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] max-w-6xl mx-auto items-start">
               {/* Left — trust messaging */}
@@ -1090,7 +1090,7 @@ export default function LandingPage() {
               • Funnel conversion metrics
               • Partner or credibility logos if available
         ════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-white">
+        <section className="py-10 bg-white">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-14">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
@@ -1122,7 +1122,7 @@ export default function LandingPage() {
         {/* ════════════════════════════════════════════════════════════════
             SECTION 12 — FAQ
         ════════════════════════════════════════════════════════════════ */}
-        <section id="faq" className="py-20 bg-muted/30">
+        <section id="faq" className="py-10 bg-muted/30">
           <div className="container mx-auto px-4 max-w-5xl">
             <div className="text-center mb-14">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary">
@@ -1161,7 +1161,7 @@ export default function LandingPage() {
         {/* ════════════════════════════════════════════════════════════════
             SECTION 13 — AFFILIATE PROGRAM
         ════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-primary">
+        <section className="py-10 bg-primary">
           <div className="container mx-auto px-4 text-center max-w-4xl">
             <p className="text-secondary font-semibold tracking-widest uppercase text-sm mb-3">
               Earn While You Help Veterans
@@ -1202,7 +1202,7 @@ export default function LandingPage() {
         {/* ════════════════════════════════════════════════════════════════
             SECTION 14 — FINAL CTA
         ════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-white">
+        <section className="py-10 bg-white">
           <div className="container mx-auto px-4 text-center max-w-3xl">
             <div className="rounded-2xl border-2 border-secondary/30 bg-gradient-to-br from-secondary/5 to-primary/5 p-10 md:p-14 shadow-xl">
               <h2 className="text-3xl md:text-5xl font-serif font-bold text-primary mb-5">
