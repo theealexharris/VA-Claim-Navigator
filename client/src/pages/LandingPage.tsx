@@ -628,6 +628,36 @@ export default function LandingPage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
+            SECTION 8 — WHAT MAKES US DIFFERENT (Objection Handling)
+            Addresses skepticism naturally before it becomes abandonment
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                What makes VA Claim Navigator different
+              </h2>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Built for veterans who want a clearer process, not vague promises.
+              </p>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3 max-w-5xl mx-auto">
+              {differentiators.map(({ title, body }) => (
+                <div
+                  key={title}
+                  className="rounded-xl border border-secondary/20 bg-gradient-to-br from-secondary/5 to-white p-7 shadow-sm"
+                >
+                  <Shield className="h-6 w-6 text-secondary mb-4" />
+                  <h4 className="text-lg font-bold text-primary font-serif mb-3">{title}</h4>
+                  <p className="text-muted-foreground leading-relaxed">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
             SECTIONS 3 & 4 — SOLUTION + HOW IT WORKS (side by side)
             (ids kept so existing Navbar links still work)
         ════════════════════════════════════════════════════════════════ */}
@@ -792,36 +822,6 @@ export default function LandingPage() {
                     <Check className="h-4 w-4 text-green-600 flex-shrink-0 hidden sm:block" />
                     {right}
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════════
-            SECTION 8 — WHAT MAKES US DIFFERENT (Objection Handling)
-            Addresses skepticism naturally before it becomes abandonment
-        ════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto mb-14">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
-                What makes VA Claim Navigator different
-              </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Built for veterans who want a clearer process, not vague promises.
-              </p>
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-3 max-w-5xl mx-auto">
-              {differentiators.map(({ title, body }) => (
-                <div
-                  key={title}
-                  className="rounded-xl border border-secondary/20 bg-gradient-to-br from-secondary/5 to-white p-7 shadow-sm"
-                >
-                  <Shield className="h-6 w-6 text-secondary mb-4" />
-                  <h4 className="text-lg font-bold text-primary font-serif mb-3">{title}</h4>
-                  <p className="text-muted-foreground leading-relaxed">{body}</p>
                 </div>
               ))}
             </div>
