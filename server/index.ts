@@ -147,6 +147,10 @@ export function log(message: string, source = "express") {
 
 // ─── Express app & HTTP server ──────────────────────────────────────────────
 const app = express();
+// Trust the first proxy hop (Render/Vercel/other PaaS terminate TLS and set
+// X-Forwarded-For). Without this, express-rate-limit throws
+// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR and per-IP limits misidentify clients.
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
 // ─── HTTP server hardening ──────────────────────────────────────────────────
@@ -244,7 +248,7 @@ app.use((_req, res, next) => {
       [
         "default-src 'self'",
         // React bundles need 'self'; Stripe checkout runs in an iframe + loads its own script
-        "script-src 'self' 'unsafe-inline' https://js.stripe.com https://connect.facebook.net",
+        "script-src 'self' 'unsafe-inline' https://js.stripe.com https://connect.facebook.net https://www.googletagmanager.com",
         // Tailwind inline styles + Google Fonts
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com data:",
@@ -252,8 +256,8 @@ app.use((_req, res, next) => {
         "img-src 'self' data: blob: https:",
         // Video walkthrough and evidence media
         "media-src 'self' blob:",
-        // API calls to self + Stripe + Insforge
-        "connect-src 'self' https://*.stripe.com https://*.insforge.com https://vitals.vercel-insights.com",
+        // API calls to self + Stripe + Insforge + Google Analytics + Facebook
+        "connect-src 'self' https://*.stripe.com https://*.insforge.com https://vitals.vercel-insights.com https://www.google-analytics.com https://connect.facebook.net",
         // Stripe payment iframe
         "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
         // Service workers (if any)
@@ -272,13 +276,13 @@ app.use((_req, res, next) => {
       "Content-Security-Policy",
       [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com data:",
         "img-src 'self' data: blob: https:",
         "media-src 'self' blob:",
         // ws:// needed for Vite HMR WebSocket; https://*.stripe.com for Stripe SDK
-        "connect-src 'self' ws://localhost:* ws://127.0.0.1:* https://*.stripe.com https://*.insforge.com",
+        "connect-src 'self' ws://localhost:* ws://127.0.0.1:* https://*.stripe.com https://*.insforge.com https://www.google-analytics.com",
         "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
         "worker-src 'self' blob:",
         "object-src 'none'",
