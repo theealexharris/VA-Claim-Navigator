@@ -979,6 +979,9 @@ export default function LandingPage() {
                   <p className="text-center text-xs text-muted-foreground mt-2">
                     Use code <span className="font-mono font-bold text-amber-700">FREEDEMO</span> at checkout for 100% off
                   </p>
+                  <p className="text-center text-xs text-muted-foreground mt-1">
+                    New users: <span className="font-mono font-bold text-secondary">RXSUMMITPROMO</span> for 25% off (ends Jul 31)
+                  </p>
                 </CardContent>
               </Card>
 
@@ -1241,6 +1244,14 @@ export default function LandingPage() {
             </div>
             <p className="text-center text-xs text-muted-foreground">
               Type <strong>FREEDEMO</strong> in the "Add promotion code" field on the Stripe payment page.
+            </p>
+            <div className="flex items-center justify-center gap-3 bg-secondary/10 border-2 border-secondary/40 rounded-lg py-2.5 px-4">
+              <span className="text-xl font-mono font-extrabold tracking-widest text-secondary select-all">
+                RXSUMMITPROMO
+              </span>
+            </div>
+            <p className="text-center text-xs text-muted-foreground">
+              New users can also use <strong>RXSUMMITPROMO</strong> for 25% off (ends Jul 31).
             </p>
             <Link href="/signup?tier=pro">
               <Button
