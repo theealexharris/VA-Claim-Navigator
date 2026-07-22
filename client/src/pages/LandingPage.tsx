@@ -1161,35 +1161,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ════════════════════════════════════════════════════════════════
-            SECTION 14 — FINAL CTA
-        ════════════════════════════════════════════════════════════════ */}
-        <section className="py-10 bg-white">
-          <div className="container mx-auto px-4 text-center max-w-3xl">
-            <div className="rounded-2xl border-2 border-secondary/30 bg-gradient-to-br from-secondary/5 to-primary/5 p-10 md:p-14 shadow-xl">
-              <h2 className="text-3xl md:text-5xl font-serif font-bold text-primary mb-5">
-                Start with a clearer draft
-              </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto">
-                Get a guided workflow and a structured supporting statement draft you can review
-                before taking your next steps.
-              </p>
-              <Link href="/signup">
-                <Button
-                  size="lg"
-                  className="h-16 px-10 text-xl font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-xl shadow-secondary/20"
-                  data-testid="button-final-cta"
-                >
-                  Start My Claim <ArrowRight className="ml-2 h-6 w-6" />
-                </Button>
-              </Link>
-              <p className="mt-5 text-sm text-muted-foreground">
-                Guided • Structured • Independent private platform
-              </p>
-            </div>
-          </div>
-        </section>
-
         {/* ── Compliance Disclaimer (above footer) ── */}
         <div className="border-t border-border bg-muted/30 px-4 py-6 text-center">
           <p className="text-xs text-muted-foreground max-w-4xl mx-auto leading-relaxed">
