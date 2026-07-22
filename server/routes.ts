@@ -2198,19 +2198,29 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Please provide a valid email address." });
     }
 
-    // Escape user input before embedding in HTML emails.
+    // Strip CR/LF and cap length — prevents email header injection when these
+    // values are used in Subject / addresses, and blocks oversized payloads.
+    const oneLine = (s: any, max = 200) => String(s ?? "").replace(/[\r\n]+/g, " ").trim().slice(0, max);
+    const cleanEmail = oneLine(email, 254);
+    const cleanName = oneLine(fullName, 120);
+    const cleanPhone = oneLine(phone, 40);
+    const cleanSubject = oneLine(subject, 1000);
+    const cleanDate = oneLine(date, 60);
+    const cleanTime = oneLine(time, 40);
+
+    // Escape user input before embedding in HTML email bodies (XSS-safe).
     const esc = (s: string) =>
       String(s).replace(/[&<>"']/g, (c) =>
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string),
       );
 
     const safe = {
-      fullName: esc(fullName),
-      email: esc(email),
-      phone: esc(phone),
-      subject: esc(subject),
-      date: esc(date),
-      time: esc(time),
+      fullName: esc(cleanName),
+      email: esc(cleanEmail),
+      phone: esc(cleanPhone),
+      subject: esc(cleanSubject),
+      date: esc(cleanDate),
+      time: esc(cleanTime),
     };
 
     // 1) Confirmation email to the veteran who booked.
@@ -2245,22 +2255,22 @@ export async function registerRoutes(
     try {
       const [userResult, adminResult] = await Promise.all([
         sendMail({
-          to: String(email),
+          to: cleanEmail,
           subject: "Your Onboarding Consulting Call is booked — VA Claim Navigator",
           html: userHtml,
-          text: `Hi ${fullName}, your Onboarding Consulting Call is booked for ${date} at ${time}. One of our staff members will be in touch with you within one business day.`,
+          text: `Hi ${cleanName}, your Onboarding Consulting Call is booked for ${cleanDate} at ${cleanTime}. One of our staff members will be in touch with you within one business day.`,
         }),
         sendMail({
           to: BOOKING_NOTIFY_EMAIL,
-          replyTo: String(email),
-          subject: `New booking: ${String(subject)} — ${String(fullName)}`,
+          replyTo: cleanEmail,
+          subject: oneLine(`New booking: ${cleanSubject} — ${cleanName}`, 200),
           html: adminHtml,
-          text: `New Onboarding Consulting Call booking\nName: ${fullName}\nEmail: ${email}\nPhone: ${phone}\nSubject: ${subject}\nDate: ${date}\nTime: ${time}`,
+          text: `New Onboarding Consulting Call booking\nName: ${cleanName}\nEmail: ${cleanEmail}\nPhone: ${cleanPhone}\nSubject: ${cleanSubject}\nDate: ${cleanDate}\nTime: ${cleanTime}`,
         }),
       ]);
 
       console.log(
-        `[BOOKING] ${maskEmail(String(email))} — ${date} ${time} | user email ${userResult.ok ? "sent" : "skipped"}, admin email ${adminResult.ok ? "sent" : "skipped"}`,
+        `[BOOKING] ${maskEmail(cleanEmail)} — ${cleanDate} ${cleanTime} | user email ${userResult.ok ? "sent" : "skipped"}, admin email ${adminResult.ok ? "sent" : "skipped"}`,
       );
 
       // Success even if SMTP is unconfigured, so the UX popup still shows and the
