@@ -628,86 +628,91 @@ export default function LandingPage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
-            SECTION 3 — SOLUTION
-            (id="features" so existing Navbar link works)
+            SECTIONS 3 & 4 — SOLUTION + HOW IT WORKS (side by side)
+            (ids kept so existing Navbar links still work)
         ════════════════════════════════════════════════════════════════ */}
-        <section id="features" className="py-20 bg-white">
+        <section className="py-20 bg-white">
           <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto mb-14">
-              <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
-                THE SOLUTION
-              </h2>
-              <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
-                A guided platform built around the actual end product
-              </h3>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Instead of leaving you wondering what you receive, VA Claim Navigator shows you the
-                outcome: a structured written supporting statement draft created from your answers.
-              </p>
-            </div>
+            <div className="grid gap-12 lg:grid-cols-2 max-w-7xl mx-auto items-start">
 
-            <div className="grid gap-6 lg:grid-cols-3 max-w-6xl mx-auto">
-              {solutions.map(({ icon: Icon, title, body }) => (
-                <div
-                  key={title}
-                  className="group rounded-xl border border-border bg-white p-7 shadow-sm hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => handleFeatureClick(title)}
-                  data-testid={`feature-card-${title.toLowerCase().replace(/\s+/g, "-")}`}
-                >
-                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-secondary/10 group-hover:bg-secondary/15 transition-colors">
-                    <Icon className="h-6 w-6 text-secondary" />
-                  </div>
-                  <h4 className="text-xl font-bold text-primary font-serif mb-3">{title}</h4>
-                  <p className="text-muted-foreground leading-relaxed">{body}</p>
+              {/* ── Left: The Solution ── */}
+              <div id="features">
+                <div className="mb-8">
+                  <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
+                    THE SOLUTION
+                  </h2>
+                  <h3 className="text-2xl md:text-3xl font-serif font-bold text-primary mb-4">
+                    A guided platform built around the actual end product
+                  </h3>
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    Instead of leaving you wondering what you receive, VA Claim Navigator shows you the
+                    outcome: a structured written supporting statement draft created from your answers.
+                  </p>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
-        {/* ════════════════════════════════════════════════════════════════
-            SECTION 4 — HOW IT WORKS
-        ════════════════════════════════════════════════════════════════ */}
-        <section id="how-it-works" className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto mb-14">
-              <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
-                HOW IT WORKS
-              </h2>
-              <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
-                Three simple steps to your structured draft
-              </h3>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                A simple, guided workflow designed to help you move from scattered information to a
-                clearer written draft.
-              </p>
-            </div>
-
-            <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-              {steps.map(({ num, title, body }) => (
-                <div
-                  key={num}
-                  className="text-center p-8 rounded-xl bg-white border border-border shadow-sm"
-                >
-                  <div className="w-14 h-14 rounded-full bg-secondary/15 flex items-center justify-center mx-auto mb-5">
-                    <span className="text-xl font-bold text-secondary font-serif">{num}</span>
-                  </div>
-                  <h4 className="text-xl font-bold text-primary mb-3 font-serif">{title}</h4>
-                  <p className="text-muted-foreground leading-relaxed">{body}</p>
+                <div className="space-y-4">
+                  {solutions.map(({ icon: Icon, title, body }) => (
+                    <div
+                      key={title}
+                      className="group rounded-xl border border-border bg-white p-6 shadow-sm hover:shadow-lg transition-shadow cursor-pointer"
+                      onClick={() => handleFeatureClick(title)}
+                      data-testid={`feature-card-${title.toLowerCase().replace(/\s+/g, "-")}`}
+                    >
+                      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-secondary/10 group-hover:bg-secondary/15 transition-colors">
+                        <Icon className="h-5 w-5 text-secondary" />
+                      </div>
+                      <h4 className="text-lg font-bold text-primary font-serif mb-2">{title}</h4>
+                      <p className="text-muted-foreground leading-relaxed text-sm">{body}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
 
-            <div className="mt-12 text-center">
-              <Link href="/signup">
-                <Button
-                  size="lg"
-                  className="h-14 px-8 text-lg font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg shadow-secondary/20"
-                  data-testid="button-how-start"
-                >
-                  Start My Claim <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+              {/* ── Right: How It Works ── */}
+              <div id="how-it-works">
+                <div className="mb-8">
+                  <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
+                    HOW IT WORKS
+                  </h2>
+                  <h3 className="text-2xl md:text-3xl font-serif font-bold text-primary mb-4">
+                    Three simple steps to your structured draft
+                  </h3>
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    A simple, guided workflow designed to help you move from scattered information to a
+                    clearer written draft.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {steps.map(({ num, title, body }) => (
+                    <div
+                      key={num}
+                      className="flex gap-4 p-6 rounded-xl bg-muted/30 border border-border shadow-sm"
+                    >
+                      <div className="w-11 h-11 rounded-full bg-secondary/15 flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg font-bold text-secondary font-serif">{num}</span>
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-primary mb-1 font-serif">{title}</h4>
+                        <p className="text-muted-foreground leading-relaxed text-sm">{body}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8">
+                  <Link href="/signup">
+                    <Button
+                      size="lg"
+                      className="h-14 px-8 text-lg font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg shadow-secondary/20"
+                      data-testid="button-how-start"
+                    >
+                      Start My Claim <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
