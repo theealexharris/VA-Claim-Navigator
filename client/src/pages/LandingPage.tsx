@@ -628,6 +628,59 @@ export default function LandingPage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
+            SECTION 10 — TRUST / FOUNDER
+        ════════════════════════════════════════════════════════════════ */}
+        <section className="py-10 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] max-w-6xl mx-auto items-start">
+              {/* Left — trust messaging */}
+              <div>
+                <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                  Built with purpose for the veteran community
+                </h2>
+                <p className="text-lg text-muted-foreground leading-relaxed mb-8">
+                  VA Claim Navigator was created to bring more clarity, structure, and support to a
+                  process that too often feels difficult to navigate. The goal is simple: help
+                  veterans prepare more organized claim information with less overwhelm.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {trustItems.map((item) => (
+                    <div
+                      key={item}
+                      className="flex items-center gap-3 rounded-lg border border-border bg-white px-4 py-3.5 shadow-sm"
+                    >
+                      <Shield className="h-4 w-4 text-secondary flex-shrink-0" />
+                      <span className="text-sm font-medium text-foreground">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right — Founder card */}
+              <div className="rounded-xl border-2 border-secondary/30 bg-gradient-to-br from-secondary/5 to-secondary/10 p-7 shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-3">
+                  Founder
+                </p>
+                <h3 className="text-2xl font-serif font-bold text-primary mb-4">
+                  Built by someone who understands the mission
+                </h3>
+                <p className="text-muted-foreground leading-relaxed mb-4">
+                  Disabled Veteran Alex Harris, VA Claim Navigator was built to help veterans
+                  navigate one of the most frustrating parts of the process with more clarity, more
+                  structure, and a better starting point.
+                </p>
+                {/* Full photo — object-contain so the whole person is visible, never cropped */}
+                <img
+                  src={veteranImage}
+                  alt="Disabled Veteran Alex Harris — Founder"
+                  className="rounded-lg w-full h-auto object-contain border border-border mt-2 bg-white"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
             SECTION 8 — WHAT MAKES US DIFFERENT (Objection Handling)
             Addresses skepticism naturally before it becomes abandonment
         ════════════════════════════════════════════════════════════════ */}
@@ -1025,59 +1078,6 @@ export default function LandingPage() {
               connected to official VA document preparation, filing, outcome, or success of any VA
               disability claim or documents filed.
             </p>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════════
-            SECTION 10 — TRUST / FOUNDER
-        ════════════════════════════════════════════════════════════════ */}
-        <section className="py-10 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] max-w-6xl mx-auto items-start">
-              {/* Left — trust messaging */}
-              <div>
-                <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
-                  Built with purpose for the veteran community
-                </h2>
-                <p className="text-lg text-muted-foreground leading-relaxed mb-8">
-                  VA Claim Navigator was created to bring more clarity, structure, and support to a
-                  process that too often feels difficult to navigate. The goal is simple: help
-                  veterans prepare more organized claim information with less overwhelm.
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {trustItems.map((item) => (
-                    <div
-                      key={item}
-                      className="flex items-center gap-3 rounded-lg border border-border bg-white px-4 py-3.5 shadow-sm"
-                    >
-                      <Shield className="h-4 w-4 text-secondary flex-shrink-0" />
-                      <span className="text-sm font-medium text-foreground">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right — Founder card */}
-              <div className="rounded-xl border-2 border-secondary/30 bg-gradient-to-br from-secondary/5 to-secondary/10 p-7 shadow-lg">
-                <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-3">
-                  Founder
-                </p>
-                <h3 className="text-2xl font-serif font-bold text-primary mb-4">
-                  Built by someone who understands the mission
-                </h3>
-                <p className="text-muted-foreground leading-relaxed mb-4">
-                  Created by Alexander Harris, VA Claim Navigator was built to help veterans
-                  navigate one of the most frustrating parts of the process with more clarity, more
-                  structure, and a better starting point.
-                </p>
-                {/* TODO: Replace with a dedicated founder headshot if available */}
-                <img
-                  src={veteranImage}
-                  alt="Alexander Harris — Founder"
-                  className="rounded-lg w-full max-h-48 object-cover border border-border mt-2"
-                />
-              </div>
-            </div>
           </div>
         </section>
 
