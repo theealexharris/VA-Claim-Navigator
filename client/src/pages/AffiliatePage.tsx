@@ -25,6 +25,7 @@ import {
   Shield,
   Zap,
   ChevronDown,
+  Copy,
 } from "lucide-react";
 
 const benefits = [
@@ -93,6 +94,7 @@ export default function AffiliatePage() {
   const [showSignup, setShowSignup] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [affiliateLink, setAffiliateLink] = useState("");
   const [form, setForm] = useState<SignupForm>({
     firstName: "",
     lastName: "",
@@ -106,6 +108,15 @@ export default function AffiliatePage() {
 
   const updateForm = (field: keyof SignupForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(affiliateLink);
+      toast({ title: "Copied!", description: "Your affiliate link is on the clipboard." });
+    } catch {
+      toast({ title: "Copy failed", description: "Please copy the link manually.", variant: "destructive" });
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -145,6 +156,8 @@ export default function AffiliatePage() {
       });
 
       if (response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (data?.affiliateLink) setAffiliateLink(data.affiliateLink);
         setSubmitted(true);
       } else {
         const data = await response.json().catch(() => ({}));
@@ -158,39 +171,68 @@ export default function AffiliatePage() {
       }
     } catch {
       // Network error fallback — still show success screen to avoid user confusion
-      // (the email will be verified on first login attempt)
       setSubmitted(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ── Email Verified Success Screen ──────────────────────────────────────────
+  // ── Affiliate Account Created — Show Unique Link ────────────────────────────
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
         <Card className="max-w-md w-full text-center shadow-2xl">
           <CardContent className="pt-12 pb-10 px-8">
             <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-              <Mail className="h-10 w-10 text-green-600" />
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-serif font-bold text-primary mb-3">Check Your Email</h2>
-            <p className="text-muted-foreground mb-2">
-              We sent a verification link to <span className="font-semibold text-foreground">{form.email}</span>.
+            <h2 className="text-2xl font-serif font-bold text-primary mb-3">You're In! 🎉</h2>
+            <p className="text-muted-foreground mb-6">
+              Your affiliate account is active. Here is your unique referral link — share it anywhere to
+              earn <span className="font-semibold text-foreground">20% recurring commission</span>.
             </p>
-            <p className="text-muted-foreground text-sm mb-8">
-              Click the link in the email to verify your account and access your affiliate dashboard. Check your spam folder if you don't see it within a few minutes.
-            </p>
-            <CheckCircle2 className="h-6 w-6 text-green-500 mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground mb-6">Once verified, log in to your affiliate dashboard to get your unique link and marketing assets.</p>
+
+            {affiliateLink ? (
+              <div className="mb-6">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Your Affiliate Link
+                </Label>
+                <div className="mt-2 flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={affiliateLink}
+                    className="font-mono text-sm select-all"
+                    onFocus={(e) => e.currentTarget.select()}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="flex-shrink-0"
+                    onClick={copyLink}
+                    aria-label="Copy affiliate link"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Anyone who subscribes within 30 days of clicking this link is credited to you.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground mb-6">
+                Log in to your affiliate dashboard to retrieve your unique tracking link.
+              </p>
+            )}
+
             <Button className="w-full bg-primary text-primary-foreground" onClick={() => setLocation("/affiliate/login")}>
-              Go to Affiliate Login
+              Go to Affiliate Dashboard
             </Button>
             <p className="text-xs text-muted-foreground mt-4">
-              Didn't receive it?{" "}
-              <button className="underline text-primary" onClick={() => setSubmitted(false)}>
-                Try again
-              </button>
+              Questions? Email{" "}
+              <a href="mailto:Admindesk@vaclaimnavigator.com" className="underline text-primary">
+                Admindesk@vaclaimnavigator.com
+              </a>
             </p>
           </CardContent>
         </Card>
@@ -259,7 +301,7 @@ export default function AffiliatePage() {
                       required
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">A verification email will be sent to this address.</p>
+                  <p className="text-xs text-muted-foreground">We'll use this address for payout and account notifications.</p>
                 </div>
 
                 <div className="space-y-1.5">
@@ -336,9 +378,9 @@ export default function AffiliatePage() {
 
                 <div className="bg-muted/50 rounded-lg p-4 text-xs text-muted-foreground space-y-1">
                   <p className="font-semibold text-foreground text-sm">What happens next:</p>
-                  <p>1. You'll receive a verification email — click the link to activate your account.</p>
-                  <p>2. Log in to your affiliate dashboard to get your unique tracking link.</p>
-                  <p>3. Access the full marketing asset library and start earning 20% recurring commissions.</p>
+                  <p>1. Your unique affiliate tracking link is generated instantly.</p>
+                  <p>2. Log in to your affiliate dashboard to view stats and marketing assets.</p>
+                  <p>3. Share your link and start earning 20% recurring commissions.</p>
                 </div>
 
                 <Button
@@ -346,7 +388,7 @@ export default function AffiliatePage() {
                   className="w-full h-12 text-base font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Creating Account..." : "Create Affiliate Account & Verify Email"}
+                  {isSubmitting ? "Creating Account..." : "Create Affiliate Account & Get My Link"}
                 </Button>
 
                 <p className="text-center text-xs text-muted-foreground">
@@ -579,7 +621,7 @@ export default function AffiliatePage() {
           >
             Join as an Affiliate — Free <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
-          <p className="mt-4 text-sm text-muted-foreground">No credit card · No fees · Start earning immediately after verification</p>
+          <p className="mt-4 text-sm text-muted-foreground">No credit card · No fees · Start earning immediately after signup</p>
         </div>
       </section>
 

@@ -500,79 +500,41 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              {/* ─ Right column: UI mockup card ─ */}
+              {/* ─ Right column: Real Document Output (walk-away value) ─ */}
               <div className="relative">
-                <div className="rounded-2xl border-2 border-border/50 bg-white p-3 shadow-2xl shadow-primary/10">
-                  <div className="rounded-xl border border-border bg-muted/30 p-4">
-                    {/* Window chrome */}
-                    <div className="mb-4 flex items-center gap-1.5">
-                      <div className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
-                      <div className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
-                      <div className="h-2.5 w-2.5 rounded-full bg-green-400/70" />
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {/* Builder steps */}
-                      <div className="rounded-xl border border-border bg-white p-4">
-                        <p className="mb-3 text-sm font-semibold text-primary">
-                          Guided Claim Builder
-                        </p>
-                        {[
-                          "Service history",
-                          "Conditions & symptoms",
-                          "Functional impact",
-                          "Supporting details",
-                        ].map((field, idx) => (
-                          <div
-                            key={field}
-                            className="mb-2 last:mb-0 rounded-lg border border-border bg-muted/40 p-2.5"
-                          >
-                            <span className="block text-[10px] uppercase tracking-widest text-muted-foreground/70 font-semibold">
-                              Step {idx + 1}
-                            </span>
-                            <span className="text-sm text-foreground">{field}</span>
-                          </div>
-                        ))}
+                <div className="rounded-2xl border-2 border-border/50 bg-white p-8 shadow-2xl shadow-primary/10">
+                  <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
+                    REAL DOCUMENT OUTPUT
+                  </h2>
+                  <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                    This is what you walk away with
+                  </h3>
+                  <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                    The Claim Navigator generates a fully structured supplemental statement —
+                    formatted and ready to submit to the VA. The sample shown is exactly the
+                    type of document the platform produces from your answers.
+                  </p>
+
+                  <div className="space-y-3">
+                    {[
+                      "Condition-by-condition sections",
+                      "Symptom and functional impact summaries",
+                      "Supporting evidence and rationale sections",
+                    ].map((item) => (
+                      <div
+                        key={item}
+                        className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3"
+                      >
+                        <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span className="text-foreground">{item}</span>
                       </div>
-                      {/* Sample statement document preview */}
-                      <div className="rounded-xl border border-border bg-white p-4 overflow-hidden relative" style={{ fontFamily: 'Arial, sans-serif' }}>
-                        {/* Diagonal watermark */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden">
-                          <span className="font-bold text-gray-200/80 text-2xl select-none whitespace-nowrap" style={{ transform: 'rotate(-35deg)', letterSpacing: '0.06em' }}>
-                            SAMPLE ONLY
-                          </span>
-                        </div>
-                        {/* Document body */}
-                        <div className="space-y-1 text-[10px] leading-normal text-gray-800 relative z-0">
-                          <p className="font-bold text-[11px] text-gray-900">VA CLAIM NAVIGATOR – SUPPLEMENTAL STATEMENT</p>
-                          <p className="text-gray-500 text-[9px] italic mb-1">(Sample)</p>
-                          <p><span className="font-semibold">Date:</span> 03/09/2026</p>
-                          <p><span className="font-semibold">From:</span> Veteran AI Test (SSN: XXX-XX-4569)</p>
-                          <p><span className="font-semibold">To:</span> VA Claims Intake Center</p>
-                          <p><span className="font-semibold">Subj:</span> Supporting Statement for Service-Connected Claim</p>
-                          <hr className="border-gray-400 my-1.5" />
-                          <p className="font-bold text-[10px] uppercase tracking-wide">Condition:</p>
-                          <hr className="border-gray-300" />
-                          <p>Left Shoulder Rotator Cuff Tear (incurred during active duty, Feb 2000).</p>
-                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Current Symptoms:</p>
-                          <hr className="border-gray-300" />
-                          <p>Chronic pain; reduced range of motion; difficulty with daily activities.</p>
-                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Evidence:</p>
-                          <hr className="border-gray-300" />
-                          <p>Service records; VA medical evaluations (summarized).</p>
-                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Legal Basis:</p>
-                          <hr className="border-gray-300" />
-                          <p>38 CFR § 4.71a; Shedden v. Principi.</p>
-                          <p className="font-bold text-[10px] uppercase tracking-wide mt-1">Conclusion:</p>
-                          <hr className="border-gray-300" />
-                          <p>Evidence supports service connection and appropriate rating.</p>
-                          <div className="mt-2.5 pt-1.5 border-t border-gray-200">
-                            <p className="italic">Respectfully Submitted,</p>
-                            <p className="font-semibold">Veteran AI Test</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
+
+                  <p className="mt-6 text-sm text-muted-foreground italic">
+                    The preview shown is a sample layout. Your actual draft will be generated from
+                    your specific answers.
+                  </p>
                 </div>
               </div>
             </div>

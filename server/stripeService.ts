@@ -6,11 +6,11 @@ export class StripeService {
     const stripe = await getUncachableStripeClient();
     try {
       const promotionCode = await stripe.promotionCodes.retrieve(promotionCodeId, { expand: ['coupon'] }) as any;
-      
+
       if (!promotionCode.active) {
         return { valid: false, error: 'Promotion code is not active' };
       }
-      
+
       const coupon = promotionCode.coupon;
       return {
         valid: true,
@@ -73,7 +73,7 @@ export class StripeService {
     successUrl: string,
     cancelUrl: string,
     promotionCode?: string,
-    metadata?: { userId: string; tier: string }
+    metadata?: { userId: string; tier: string; [key: string]: string | undefined }
   ) {
     const stripe = await getUncachableStripeClient();
 
@@ -89,8 +89,14 @@ export class StripeService {
       cancel_url: cancelUrl,
     };
 
+    // Forward all provided metadata (userId, tier, addon_type, affiliate_ref, …)
+    // so the webhook can act on every field — not just userId/tier.
     if (metadata?.userId && metadata?.tier) {
-      sessionConfig.metadata = { userId: metadata.userId, tier: metadata.tier };
+      const meta: Record<string, string> = {};
+      for (const [k, v] of Object.entries(metadata)) {
+        if (typeof v === 'string' && v.length > 0) meta[k] = v;
+      }
+      sessionConfig.metadata = meta;
     }
 
     if (promotionCode) {
