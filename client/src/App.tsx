@@ -28,6 +28,7 @@ import ReferralProgram from "@/pages/ReferralProgram";
 import FunnelContacts from "@/pages/FunnelContacts";
 import Notifications from "@/pages/Notifications";
 import ConsultationBooking from "@/pages/ConsultationBooking";
+import BookingCalendar from "@/pages/BookingCalendar";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 import ComplianceNotice from "@/pages/ComplianceNotice";
@@ -125,6 +126,11 @@ function Router() {
       <Route path="/dashboard/tdiu">
         <ProtectedRoute>
           <TDIU />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/calendar">
+        <ProtectedRoute>
+          <BookingCalendar />
         </ProtectedRoute>
       </Route>
       <Route path="/dashboard/coach">
