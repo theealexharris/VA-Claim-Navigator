@@ -628,38 +628,6 @@ export default function LandingPage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
-            SECTION 2 — PROBLEM
-        ════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto mb-14">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
-                Filing a disability claim can feel confusing, time-consuming, and overwhelming
-              </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Many veterans struggle to know what details matter, how to organize their
-                information, or how to explain their conditions clearly. When the process feels
-                unclear, it becomes easier to delay filing or overlook important information.
-              </p>
-            </div>
-
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4 max-w-6xl mx-auto">
-              {painPoints.map(({ icon: Icon, text }) => (
-                <div
-                  key={text}
-                  className="rounded-xl border border-border bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/5">
-                    <Icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <p className="text-base leading-7 text-foreground">{text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════════
             SECTION 3 — SOLUTION
             (id="features" so existing Navbar link works)
         ════════════════════════════════════════════════════════════════ */}
