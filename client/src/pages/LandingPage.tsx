@@ -791,44 +791,6 @@ export default function LandingPage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
-            SECTION 7 — COMPARISON TABLE
-        ════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto mb-14">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary">
-                Why veterans choose a guided process
-              </h2>
-            </div>
-
-            <div className="max-w-4xl mx-auto overflow-hidden rounded-xl border-2 border-border shadow-lg">
-              {/* Table header */}
-              <div className="grid grid-cols-2 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-wide">
-                <div className="px-5 py-4">Doing it alone</div>
-                <div className="border-l border-primary-foreground/20 px-5 py-4">
-                  Using VA Claim Navigator
-                </div>
-              </div>
-              {/* Table rows */}
-              {comparisonRows.map(([left, right], idx) => (
-                <div
-                  key={idx}
-                  className={`grid grid-cols-2 border-t border-border ${
-                    idx % 2 === 0 ? "bg-white" : "bg-muted/20"
-                  }`}
-                >
-                  <div className="px-5 py-4 text-muted-foreground text-sm">{left}</div>
-                  <div className="border-l border-border px-5 py-4 text-foreground font-medium text-sm flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600 flex-shrink-0 hidden sm:block" />
-                    {right}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════════
             SECTION 9 — VETS SERVED COUNTER + PRICING
         ════════════════════════════════════════════════════════════════ */}
 
