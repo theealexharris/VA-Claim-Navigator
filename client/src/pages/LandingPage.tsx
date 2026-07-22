@@ -500,87 +500,40 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              {/* ─ Right column: real document output (sample supplemental statement) ─ */}
+              {/* ─ Right column: Real Document Output (walk-away value) ─ */}
               <div className="relative">
-                <div className="rounded-2xl border-2 border-border/50 bg-white p-4 shadow-2xl shadow-primary/10">
-                  {/* Browser/doc chrome bar */}
-                  <div className="flex items-center gap-1.5 mb-3 pb-2 border-b border-border/50">
-                    <div className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
-                    <div className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
-                    <div className="h-2.5 w-2.5 rounded-full bg-green-400/70" />
-                    <span className="ml-2 text-[10px] text-muted-foreground/60 font-mono">
-                      supplemental-statement-sample.pdf
-                    </span>
-                  </div>
+                <div className="rounded-2xl border-2 border-border/50 bg-white p-8 shadow-2xl shadow-primary/10">
+                  <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">
+                    REAL DOCUMENT OUTPUT
+                  </h2>
+                  <h3 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-5">
+                    This is what you walk away with
+                  </h3>
+                  <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                    The Claim Navigator generates a fully structured supplemental statement —
+                    formatted and ready to submit to the VA. The sample shown is exactly the
+                    type of document the platform produces from your answers.
+                  </p>
 
-                  {/* Document wrapper with shadow to mimic a printed page */}
-                  <div className="relative rounded border border-gray-200 bg-white shadow-md overflow-hidden" style={{ fontFamily: 'Arial, sans-serif' }}>
-                    {/* Diagonal SAMPLE ONLY watermark */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden">
-                      <span
-                        className="font-bold text-gray-200 select-none whitespace-nowrap"
-                        style={{ fontSize: '52px', transform: 'rotate(-35deg)', letterSpacing: '0.08em', opacity: 0.7 }}
+                  <div className="space-y-3">
+                    {[
+                      "Condition-by-condition sections",
+                      "Symptom and functional impact summaries",
+                      "Supporting evidence and rationale sections",
+                    ].map((item) => (
+                      <div
+                        key={item}
+                        className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3"
                       >
-                        SAMPLE ONLY
-                      </span>
-                    </div>
-
-                    {/* Document content */}
-                    <div className="p-6 space-y-2 text-[11px] leading-relaxed text-gray-800 relative z-0">
-                      {/* Title */}
-                      <p className="font-bold text-[13px] text-gray-900 mb-3">
-                        VA CLAIM NAVIGATOR – SUPPLEMENTAL STATEMENT{" "}
-                        <span className="font-normal text-gray-500">(Sample)</span>
-                      </p>
-
-                      {/* Header block */}
-                      <p><span className="font-semibold">Date:</span> 03/09/2026</p>
-                      <p><span className="font-semibold">From:</span> Veteran AI Test (SSN: XXX-XX-4569)</p>
-                      <p><span className="font-semibold">To:</span> VA Claims Intake Center</p>
-                      <p><span className="font-semibold">Subj:</span> Supporting Statement for Service-Connected Claim</p>
-                      <hr className="border-gray-500 my-2" />
-
-                      {/* Condition */}
-                      <p className="font-bold uppercase tracking-wide text-[10px]">Condition:</p>
-                      <hr className="border-gray-300" />
-                      <p>Left Shoulder Rotator Cuff Tear (incurred during active duty, Feb 2000).</p>
-
-                      {/* Current Symptoms */}
-                      <p className="font-bold uppercase tracking-wide text-[10px] mt-1">Current Symptoms:</p>
-                      <hr className="border-gray-300" />
-                      <p>Chronic pain; reduced range of motion; difficulty with daily activities.</p>
-
-                      {/* Evidence */}
-                      <p className="font-bold uppercase tracking-wide text-[10px] mt-1">Evidence:</p>
-                      <hr className="border-gray-300" />
-                      <p>Service records; VA medical evaluations (summarized).</p>
-
-                      {/* Legal Basis */}
-                      <p className="font-bold uppercase tracking-wide text-[10px] mt-1">Legal Basis:</p>
-                      <hr className="border-gray-300" />
-                      <p>38 CFR § 4.71a; Shedden v. Principi.</p>
-
-                      {/* Legal Argument */}
-                      <p className="font-bold uppercase tracking-wide text-[10px] mt-1">Legal Argument:</p>
-                      <hr className="border-gray-300" />
-                      <p>Condition is directly service-connected with continuity of symptoms.</p>
-
-                      {/* Conclusion */}
-                      <p className="font-bold uppercase tracking-wide text-[10px] mt-1">Conclusion / Rationale:</p>
-                      <hr className="border-gray-300" />
-                      <p>Evidence supports service connection and appropriate rating.</p>
-
-                      {/* Signature block */}
-                      <div className="mt-4 pt-3 border-t border-gray-300 space-y-1">
-                        <p className="italic">Respectfully Submitted,</p>
-                        <p className="font-semibold">Veteran AI Test</p>
-                        <p className="font-bold tracking-widest text-gray-700 mt-2">SAMPLE ONLY</p>
+                        <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span className="text-foreground">{item}</span>
                       </div>
-                    </div>
+                    ))}
                   </div>
 
-                  <p className="mt-3 text-center text-[10px] text-muted-foreground italic">
-                    Your actual statement is generated from your answers — names, SSN, and conditions are yours.
+                  <p className="mt-6 text-sm text-muted-foreground italic">
+                    The preview shown is a sample layout. Your actual draft will be generated from
+                    your specific answers.
                   </p>
                 </div>
               </div>
